@@ -1,0 +1,446 @@
+openapi: 3.0.3
+info:
+  title: HaulHour API
+  version: 1.0.0
+  description: Projected HOS-aware trip planning demonstration API
+paths:
+  /api/health/:
+    get:
+      operationId: api_health_retrieve
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+          description: ''
+  /api/locations/autocomplete/:
+    get:
+      operationId: api_locations_autocomplete_retrieve
+      parameters:
+      - in: query
+        name: demo
+        schema:
+          type: boolean
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: At least three characters
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutocompleteResponse'
+          description: ''
+  /api/locations/reverse/:
+    post:
+      operationId: api_locations_reverse_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReverseGeocode'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReverseGeocode'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReverseGeocode'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReverseGeocodeResponse'
+          description: ''
+  /api/ready/:
+    get:
+      operationId: api_ready_retrieve
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+          description: ''
+  /api/schema/:
+    get:
+      operationId: api_schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/trips/plan/:
+    post:
+      operationId: api_trips_plan_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TripPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TripPlanRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlanResponse'
+          description: ''
+components:
+  schemas:
+    AutocompleteResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+      required:
+      - results
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    ReadinessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        live_routing_configured:
+          type: boolean
+      required:
+      - live_routing_configured
+      - status
+    ReverseGeocode:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        demo:
+          type: boolean
+          default: false
+      required:
+      - latitude
+      - longitude
+    ReverseGeocodeResponse:
+      type: object
+      properties:
+        label:
+          type: string
+        country_code:
+          type: string
+          nullable: true
+        supported_country:
+          type: boolean
+      required:
+      - country_code
+      - label
+      - supported_country
+    TripPlanRequest:
+      type: object
+      properties:
+        current_location:
+          type: string
+          maxLength: 240
+          minLength: 3
+        pickup_location:
+          type: string
+          maxLength: 240
+          minLength: 3
+        dropoff_location:
+          type: string
+          maxLength: 240
+          minLength: 3
+        current_cycle_used_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,2}(?:\.\d{0,2})?$
+        start_at:
+          type: string
+          format: date-time
+        terminal_timezone:
+          type: string
+          default: America/Chicago
+          maxLength: 64
+        demo_mode:
+          type: boolean
+          default: false
+        driver_name:
+          type: string
+          maxLength: 120
+        carrier_name:
+          type: string
+          maxLength: 160
+        main_office_address:
+          type: string
+          maxLength: 240
+        vehicle_number:
+          type: string
+          maxLength: 80
+        trailer_number:
+          type: string
+          maxLength: 80
+        shipping_document_number:
+          type: string
+          maxLength: 80
+      required:
+      - current_cycle_used_hours
+      - current_location
+      - dropoff_location
+      - pickup_location
+    TripPlanResponse:
+      type: object
+      properties:
+        plan_id:
+          type: string
+        demo_mode:
+          type: boolean
+        locations:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        route_legs:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        events:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        stops:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        daily_logs:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+        summary:
+          type: object
+          additionalProperties: {}
+        assumptions:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        disclaimer:
+          type: string
+      required:
+      - assumptions
+      - daily_logs
+      - demo_mode
+      - disclaimer
+      - events
+      - locations
+      - plan_id
+      - route_legs
+      - stops
+      - summary
+      - warnings
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
