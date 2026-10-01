@@ -1,4 +1,4 @@
-import type { TripPlan, TripPlanRequest } from '../types/tripPlan'
+import type { ReplanRequest, TripPlan, TripPlanRequest } from '../types/tripPlan'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -26,6 +26,27 @@ export async function createTripPlan(input: TripPlanRequest, signal?: AbortSigna
     }
     throw new ApiError(
       error.error?.message || 'The trip could not be planned.',
+      error.error?.field_errors,
+      error.error?.code,
+    )
+  }
+  return payload as TripPlan
+}
+
+export async function replanTrip(input: ReplanRequest, signal?: AbortSignal): Promise<TripPlan> {
+  const response = await fetch(`${API_BASE}/trips/replan/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    signal,
+  })
+  const payload: unknown = await response.json()
+  if (!response.ok) {
+    const error = payload as {
+      error?: { code?: string; message?: string; field_errors?: Record<string, string[]> }
+    }
+    throw new ApiError(
+      error.error?.message || 'The trip could not be replanned.',
       error.error?.field_errors,
       error.error?.code,
     )
