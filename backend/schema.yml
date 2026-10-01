@@ -265,6 +265,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/TripPlanResponse'
           description: ''
+  /api/trips/replan/:
+    post:
+      operationId: api_trips_replan_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReplanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReplanRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripReplanResponse'
+          description: ''
 components:
   schemas:
     AutocompleteResponse:
@@ -277,6 +305,65 @@ components:
             additionalProperties: {}
       required:
       - results
+    Coordinate:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+      - latitude
+      - longitude
+    DailyLog:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        timezone:
+          type: string
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogSegment'
+        totals_minutes:
+          type: object
+          additionalProperties:
+            type: integer
+        remarks:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogRemark'
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        total_miles:
+          type: number
+          format: double
+      required:
+      - date
+      - metadata
+      - remarks
+      - segments
+      - timezone
+      - total_miles
+      - totals_minutes
+    DelayDutyStatusEnum:
+      enum:
+      - OFF_DUTY
+      - SLEEPER_BERTH
+      - DRIVING
+      - ON_DUTY_NOT_DRIVING
+      type: string
+      description: |-
+        * `OFF_DUTY` - OFF_DUTY
+        * `SLEEPER_BERTH` - SLEEPER_BERTH
+        * `DRIVING` - DRIVING
+        * `ON_DUTY_NOT_DRIVING` - ON_DUTY_NOT_DRIVING
     HealthResponse:
       type: object
       properties:
@@ -284,6 +371,62 @@ components:
           type: string
       required:
       - status
+    Location:
+      type: object
+      properties:
+        role:
+          type: string
+        label:
+          type: string
+        coordinate:
+          $ref: '#/components/schemas/Coordinate'
+      required:
+      - coordinate
+      - label
+      - role
+    LogRemark:
+      type: object
+      properties:
+        minute:
+          type: integer
+        event_id:
+          type: string
+          nullable: true
+        text:
+          type: string
+        location:
+          type: string
+      required:
+      - event_id
+      - location
+      - minute
+      - text
+    LogSegment:
+      type: object
+      properties:
+        start_minute:
+          type: integer
+        end_minute:
+          type: integer
+        duty_status:
+          type: string
+        event_id:
+          type: string
+          nullable: true
+        reason:
+          type: string
+        location:
+          type: string
+      required:
+      - duty_status
+      - end_minute
+      - event_id
+      - location
+      - reason
+      - start_minute
+    NullEnum:
+      enum:
+      - null
     ReadinessResponse:
       type: object
       properties:
@@ -294,6 +437,55 @@ components:
       required:
       - live_routing_configured
       - status
+    ReplanMetadata:
+      type: object
+      properties:
+        last_completed_event_id:
+          type: string
+        checkpoint_at:
+          type: string
+          format: date-time
+        planned_checkpoint_at:
+          type: string
+          format: date-time
+        delay_minutes:
+          type: integer
+        pickup_complete:
+          type: boolean
+      required:
+      - checkpoint_at
+      - delay_minutes
+      - last_completed_event_id
+      - pickup_complete
+      - planned_checkpoint_at
+    ReplanRequest:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          maxLength: 80
+          minLength: 6
+        last_completed_event_id:
+          type: string
+          maxLength: 80
+          minLength: 3
+        checkpoint_at:
+          type: string
+          format: date-time
+        current_location:
+          type: string
+          maxLength: 240
+          minLength: 3
+        delay_duty_status:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/DelayDutyStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - checkpoint_at
+      - current_location
+      - last_completed_event_id
+      - plan_id
     ReverseGeocode:
       type: object
       properties:
@@ -327,6 +519,149 @@ components:
       - country_code
       - label
       - supported_country
+    RouteLeg:
+      type: object
+      properties:
+        id:
+          type: string
+        start_name:
+          type: string
+        end_name:
+          type: string
+        distance_miles:
+          type: number
+          format: double
+        duration_minutes:
+          type: integer
+        geometry:
+          type: array
+          items:
+            $ref: '#/components/schemas/Coordinate'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteStep'
+      required:
+      - distance_miles
+      - duration_minutes
+      - end_name
+      - geometry
+      - id
+      - start_name
+      - steps
+    RouteStep:
+      type: object
+      properties:
+        instruction:
+          type: string
+        distance_miles:
+          type: number
+          format: double
+        duration_minutes:
+          type: integer
+      required:
+      - distance_miles
+      - duration_minutes
+      - instruction
+    ScheduleEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        event_type:
+          type: string
+        duty_status:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        duration_minutes:
+          type: integer
+        route_leg_id:
+          type: string
+          nullable: true
+        route_distance_start_miles:
+          type: number
+          format: double
+        route_distance_end_miles:
+          type: number
+          format: double
+        coordinate:
+          allOf:
+          - $ref: '#/components/schemas/Coordinate'
+          nullable: true
+        display_location:
+          type: string
+        reason:
+          type: string
+        remarks:
+          type: string
+        counts_toward_cycle:
+          type: boolean
+        source:
+          type: string
+        original_event_id:
+          type: string
+          nullable: true
+      required:
+      - coordinate
+      - counts_toward_cycle
+      - display_location
+      - duration_minutes
+      - duty_status
+      - end_at
+      - event_type
+      - id
+      - original_event_id
+      - reason
+      - remarks
+      - route_distance_end_miles
+      - route_distance_start_miles
+      - route_leg_id
+      - source
+      - start_at
+    Summary:
+      type: object
+      properties:
+        total_route_miles:
+          type: number
+          format: double
+        raw_driving_minutes:
+          type: integer
+        planned_elapsed_minutes:
+          type: integer
+        estimated_arrival:
+          type: string
+          format: date-time
+        fuel_stops:
+          type: integer
+        daily_rests:
+          type: integer
+        cycle_restarts:
+          type: integer
+        log_sheets:
+          type: integer
+        ending_cycle_used_hours:
+          type: number
+          format: double
+        compliance:
+          type: object
+          additionalProperties:
+            type: boolean
+      required:
+      - compliance
+      - cycle_restarts
+      - daily_rests
+      - ending_cycle_used_hours
+      - estimated_arrival
+      - fuel_stops
+      - log_sheets
+      - planned_elapsed_minutes
+      - raw_driving_minutes
+      - total_route_miles
     TripPlanRequest:
       type: object
       properties:
@@ -384,36 +719,35 @@ components:
       properties:
         plan_id:
           type: string
+        plan_version:
+          type: integer
+        parent_plan_id:
+          type: string
+          nullable: true
         demo_mode:
           type: boolean
         locations:
           type: array
           items:
-            type: object
-            additionalProperties: {}
+            $ref: '#/components/schemas/Location'
         route_legs:
           type: array
           items:
-            type: object
-            additionalProperties: {}
+            $ref: '#/components/schemas/RouteLeg'
         events:
           type: array
           items:
-            type: object
-            additionalProperties: {}
+            $ref: '#/components/schemas/ScheduleEvent'
         stops:
           type: array
           items:
-            type: object
-            additionalProperties: {}
+            $ref: '#/components/schemas/ScheduleEvent'
         daily_logs:
           type: array
           items:
-            type: object
-            additionalProperties: {}
+            $ref: '#/components/schemas/DailyLog'
         summary:
-          type: object
-          additionalProperties: {}
+          $ref: '#/components/schemas/Summary'
         assumptions:
           type: array
           items:
@@ -431,7 +765,70 @@ components:
       - disclaimer
       - events
       - locations
+      - parent_plan_id
       - plan_id
+      - plan_version
+      - route_legs
+      - stops
+      - summary
+      - warnings
+    TripReplanResponse:
+      type: object
+      properties:
+        plan_id:
+          type: string
+        plan_version:
+          type: integer
+        parent_plan_id:
+          type: string
+          nullable: true
+        demo_mode:
+          type: boolean
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        route_legs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteLeg'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleEvent'
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleEvent'
+        daily_logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyLog'
+        summary:
+          $ref: '#/components/schemas/Summary'
+        assumptions:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        disclaimer:
+          type: string
+        replan:
+          $ref: '#/components/schemas/ReplanMetadata'
+      required:
+      - assumptions
+      - daily_logs
+      - demo_mode
+      - disclaimer
+      - events
+      - locations
+      - parent_plan_id
+      - plan_id
+      - plan_version
+      - replan
       - route_legs
       - stops
       - summary
