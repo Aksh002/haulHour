@@ -225,7 +225,7 @@ header p {
 }
 .metrics {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1px;
   border-radius: 14px;
   overflow: hidden;
@@ -318,6 +318,26 @@ header p {
 .event.selected {
   background: #eef7f5;
 }
+.event.operational {
+  border-left: 3px solid #276fbf;
+}
+.event.regulatory {
+  border-left: 3px solid #7856a8;
+}
+.event time small {
+  display: block;
+  color: #637578;
+  font-size: 0.68rem;
+  margin-top: 3px;
+}
+.day-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: -4px 0 12px;
+  color: #53686b;
+  font-size: 0.72rem;
+}
 .event p,
 .event small {
   display: block;
@@ -326,6 +346,23 @@ header p {
 }
 .event b {
   font-variant-numeric: tabular-nums;
+}
+.event-source {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e8efee;
+  color: #53686b;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  vertical-align: 1px;
+}
+.event-source.REPORTED_COMPLETE,
+.event-source.REPORTED_VARIANCE {
+  background: #fff0eb;
+  color: #a54227;
 }
 .status {
   width: 10px;
@@ -385,6 +422,31 @@ header p {
   display: block;
   color: #53686b;
 }
+.log-metadata {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 20px;
+  margin: 18px 0 4px;
+}
+.log-metadata div {
+  min-width: 0;
+}
+.log-metadata dt {
+  color: #637578;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.log-metadata dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+.full-log-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .log-sheet svg {
   width: 100%;
   height: auto;
@@ -407,6 +469,25 @@ header p {
   padding-top: 10px;
   font-size: 0.72rem;
   color: #53686b;
+}
+.log-source-legend {
+  display: flex;
+  gap: 18px;
+  color: #53686b;
+  font-size: 0.72rem;
+}
+.log-source-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.log-source-legend i {
+  width: 22px;
+  border-top: 3px dashed #c75334;
+}
+.log-source-legend span:last-child i {
+  border-top-style: solid;
+  border-top-color: #071f23;
 }
 .sr-only {
   position: absolute;
@@ -528,6 +609,9 @@ footer p {
   .log-sheet {
     padding: 8px;
     overflow: auto;
+  }
+  .log-metadata {
+    grid-template-columns: 1fr;
   }
   .log-sheet svg {
     min-width: 800px;
