@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
-  Typography,
-} from '@mui/material'
 import L from 'leaflet'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { TriangleAlert } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Field, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 
 export interface PinCoordinate {
   latitude: number
@@ -76,15 +78,18 @@ export function MapLocationPicker({
     }
   }
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" aria-labelledby="map-picker-title">
-      <DialogTitle id="map-picker-title">Choose {title.toLowerCase()} on the map</DialogTitle>
-      <DialogContent>
-        <Typography color="text.secondary" sx={{ mb: 2 }}>
-          US locations only. Click the map or drag the pin to a facility entrance, then confirm the position.
-        </Typography>
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="map-picker-dialog">
+        <DialogHeader>
+          <DialogTitle>Choose {title.toLowerCase()} on the map</DialogTitle>
+          <DialogDescription>
+            US locations only. Click the map or drag the pin to a facility entrance, then confirm the position.
+          </DialogDescription>
+        </DialogHeader>
         {error && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {error}
+          <Alert className="app-alert warning">
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         <MapContainer center={[US_CENTER.latitude, US_CENTER.longitude]} zoom={4} className="location-picker-map">
@@ -106,31 +111,41 @@ export function MapLocationPicker({
           <MapInteractions onChange={setCoordinate} />
           <ResizeMap open={open} />
         </MapContainer>
-        <Box className="coordinate-fields">
-          <TextField
-            label="Latitude"
-            type="number"
-            value={coordinate.latitude}
-            inputProps={{ min: -90, max: 90, step: 0.0001 }}
-            onChange={(event) => setCoordinate((current) => ({ ...current, latitude: Number(event.target.value) }))}
-          />
-          <TextField
-            label="Longitude"
-            type="number"
-            value={coordinate.longitude}
-            inputProps={{ min: -180, max: 180, step: 0.0001 }}
-            onChange={(event) => setCoordinate((current) => ({ ...current, longitude: Number(event.target.value) }))}
-          />
-        </Box>
+        <div className="coordinate-fields">
+          <Field>
+            <FieldLabel htmlFor="pin-latitude">Latitude</FieldLabel>
+            <Input
+              id="pin-latitude"
+              type="number"
+              value={coordinate.latitude}
+              min={-90}
+              max={90}
+              step={0.0001}
+              onChange={(event) => setCoordinate((current) => ({ ...current, latitude: Number(event.target.value) }))}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="pin-longitude">Longitude</FieldLabel>
+            <Input
+              id="pin-longitude"
+              type="number"
+              value={coordinate.longitude}
+              min={-180}
+              max={180}
+              step={0.0001}
+              onChange={(event) => setCoordinate((current) => ({ ...current, longitude: Number(event.target.value) }))}
+            />
+          </Field>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={resolving}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={confirm} disabled={resolving}>
+            {resolving ? 'Checking US location…' : 'Use this position'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={resolving}>
-          Cancel
-        </Button>
-        <Button variant="contained" onClick={confirm} disabled={resolving}>
-          {resolving ? 'Checking US location…' : 'Use this position'}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }

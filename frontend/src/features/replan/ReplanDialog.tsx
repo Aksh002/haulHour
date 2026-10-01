@@ -1,19 +1,18 @@
-import {
-  Alert,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  FormHelperText,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-} from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
+import { Info, TriangleAlert } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { DutyStatus, ReplanRequest, TripPlan } from '../../types/tripPlan'
 import { AddressField } from '../trip-form/TripForm'
 
@@ -78,45 +77,58 @@ export function ReplanDialog({
   }
 
   return (
-    <Dialog open={open} onClose={loading ? undefined : onClose} fullWidth maxWidth="sm" aria-labelledby="replan-title">
-      <DialogTitle id="replan-title">Replan from reported progress</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2.25} sx={{ pt: 1 }}>
-          <Alert severity="info">
-            Select the last event you completed. This is driver-reported progress, not a verified ELD record. The
-            original plan remains available in this browser session.
+    <Dialog open={open} onOpenChange={(next) => !next && !loading && onClose()}>
+      <DialogContent className="replan-dialog">
+        <DialogHeader>
+          <DialogTitle>Replan from reported progress</DialogTitle>
+          <DialogDescription>Update the remaining projection from a driver-reported checkpoint.</DialogDescription>
+        </DialogHeader>
+        <div className="dialog-form-stack">
+          <Alert className="app-alert info">
+            <Info />
+            <AlertDescription>
+              Select the last event you completed. This is driver-reported progress, not a verified ELD record. The
+              original plan remains available in this browser session.
+            </AlertDescription>
           </Alert>
-          {error && <Alert severity="error">{error}</Alert>}
-          <FormControl fullWidth>
-            <InputLabel id="completed-event-label">Last completed event</InputLabel>
-            <Select
-              labelId="completed-event-label"
-              label="Last completed event"
-              value={eventId}
-              onChange={(event) => chooseEvent(event.target.value)}
-            >
-              {selectableEvents.map((event) => (
-                <MenuItem key={event.id} value={event.id}>
-                  {event.event_type.replaceAll('_', ' ')}, {new Date(event.end_at).toLocaleString()}
-                </MenuItem>
-              ))}
+          {error && (
+            <Alert variant="destructive">
+              <TriangleAlert />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Field>
+            <FieldLabel htmlFor="completed-event">Last completed event</FieldLabel>
+            <Select value={eventId} onValueChange={chooseEvent}>
+              <SelectTrigger id="completed-event" className="w-full">
+                <SelectValue placeholder="Select an event" />
+              </SelectTrigger>
+              <SelectContent>
+                {selectableEvents.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.event_type.replaceAll('_', ' ')}, {new Date(event.end_at).toLocaleString()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-          </FormControl>
-          <TextField
-            label="Reported checkpoint time"
-            type="datetime-local"
-            value={checkpoint}
-            onChange={(event) => setCheckpoint(event.target.value)}
-            error={earlyCheckpoint}
-            helperText={
-              earlyCheckpoint
+          </Field>
+          <Field data-invalid={earlyCheckpoint}>
+            <FieldLabel htmlFor="reported-checkpoint">Reported checkpoint time</FieldLabel>
+            <Input
+              id="reported-checkpoint"
+              type="datetime-local"
+              value={checkpoint}
+              aria-invalid={earlyCheckpoint}
+              onChange={(event) => setCheckpoint(event.target.value)}
+            />
+            <FieldDescription>
+              {earlyCheckpoint
                 ? "The checkpoint cannot be before the selected event's planned end."
                 : delayMinutes > 0
                   ? `${delayMinutes} minutes later than planned`
-                  : 'At the selected event’s planned completion time'
-            }
-            InputLabelProps={{ shrink: true }}
-          />
+                  : 'At the selected event’s planned completion time'}
+            </FieldDescription>
+          </Field>
           <AddressField
             label="Current US location"
             placeholder="Denver, CO"
@@ -125,38 +137,44 @@ export function ReplanDialog({
             onChange={setLocation}
           />
           {delayMinutes > 0 && (
-            <FormControl fullWidth required error={!status}>
-              <InputLabel id="variance-status-label">Duty status during unplanned time</InputLabel>
-              <Select
-                labelId="variance-status-label"
-                label="Duty status during unplanned time"
-                value={status}
-                onChange={(event) => setStatus(event.target.value as DutyStatus)}
-              >
-                <MenuItem value="OFF_DUTY">Off duty</MenuItem>
-                <MenuItem value="SLEEPER_BERTH">Sleeper berth</MenuItem>
-                <MenuItem value="DRIVING">Driving</MenuItem>
-                <MenuItem value="ON_DUTY_NOT_DRIVING">On duty, not driving</MenuItem>
+            <Field data-invalid={!status}>
+              <FieldLabel htmlFor="variance-status">Duty status during unplanned time</FieldLabel>
+              <Select value={status} onValueChange={(value) => setStatus(value as DutyStatus)}>
+                <SelectTrigger id="variance-status" className="w-full" aria-invalid={!status}>
+                  <SelectValue placeholder="Select duty status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OFF_DUTY">Off duty</SelectItem>
+                  <SelectItem value="SLEEPER_BERTH">Sleeper berth</SelectItem>
+                  <SelectItem value="DRIVING">Driving</SelectItem>
+                  <SelectItem value="ON_DUTY_NOT_DRIVING">On duty, not driving</SelectItem>
+                </SelectContent>
               </Select>
-              <FormHelperText>Required because this time changes the 8, 11, 14, and 70-hour clocks.</FormHelperText>
-            </FormControl>
+              <FieldDescription>Required because this time changes the 8, 11, 14, and 70-hour clocks.</FieldDescription>
+              {!status && <FieldError>Choose the duty status for the unplanned time.</FieldError>}
+            </Field>
           )}
-        </Stack>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={submit}
+            disabled={
+              loading ||
+              !selected ||
+              !location.trim() ||
+              !checkpoint ||
+              earlyCheckpoint ||
+              (delayMinutes > 0 && !status)
+            }
+          >
+            {loading ? 'Replanning…' : 'Build updated plan'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={submit}
-          disabled={
-            loading || !selected || !location.trim() || !checkpoint || earlyCheckpoint || (delayMinutes > 0 && !status)
-          }
-        >
-          {loading ? 'Replanning…' : 'Build updated plan'}
-        </Button>
-      </DialogActions>
     </Dialog>
   )
 }

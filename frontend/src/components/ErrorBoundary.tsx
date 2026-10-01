@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { Button } from '@mui/material'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   children: ReactNode
@@ -26,9 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <span className="form-label">Something went wrong</span>
           <h1>The planner interface could not continue.</h1>
           <p>Your trip has not been submitted again. Reload the page to start from a clean state.</p>
-          <Button variant="contained" onClick={() => window.location.reload()}>
-            Reload HaulHour
-          </Button>
+          <Button onClick={() => window.location.reload()}>Reload HaulHour</Button>
         </main>
       )
     }

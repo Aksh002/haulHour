@@ -41,6 +41,10 @@ TripPlanningService
 
 The browser never recalculates schedule totals. Route geometry, stop markers, summary metrics, itinerary entries, and daily logs all retain the canonical event IDs returned by Django.
 
+### Frontend styling
+
+Tailwind CSS v4 runs through the official Vite plugin. The interface uses owned shadcn/ui components built on Radix primitives, `src/design.css` owns the HaulHour light and dark design tokens, and Motion provides state transitions and micro-interactions. Material UI and Emotion are no longer part of the frontend dependency graph.
+
 ## Assumptions and limitations
 
 - Current cycle usage is an aggregate from the previous eight days. Because individual history is not supplied, hours do not roll off during the planned trip; a 34-hour restart is inserted when needed.
@@ -84,15 +88,15 @@ Open `http://localhost:5173`. Django automatically loads the repository-root `.e
 
 ## Environment variables
 
-| Variable | Purpose |
-| --- | --- |
-| `DJANGO_SETTINGS_MODULE` | `config.settings.local` locally; `config.settings.production` when hosted |
-| `DJANGO_SECRET_KEY` | Required, secret production signing key |
-| `DJANGO_ALLOWED_HOSTS` | Comma-separated backend host names |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated exact frontend origins |
-| `OPENROUTESERVICE_API_KEY` | Server-only geocoding and HGV directions key |
+| Variable                           | Purpose                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------- |
+| `DJANGO_SETTINGS_MODULE`           | `config.settings.local` locally; `config.settings.production` when hosted         |
+| `DJANGO_SECRET_KEY`                | Required, secret production signing key                                           |
+| `DJANGO_ALLOWED_HOSTS`             | Comma-separated backend host names                                                |
+| `CORS_ALLOWED_ORIGINS`             | Comma-separated exact frontend origins                                            |
+| `OPENROUTESERVICE_API_KEY`         | Server-only geocoding and HGV directions key                                      |
 | `PLANNING_PROVIDER_BUDGET_SECONDS` | Maximum combined routing-provider time per plan or replan; defaults to 45 seconds |
-| `VITE_API_BASE_URL` | Public backend API base, e.g. `https://api.example.com/api` |
+| `VITE_API_BASE_URL`                | Public backend API base, e.g. `https://api.example.com/api`                       |
 
 Never prefix the routing key with `VITE_`; Vite-prefixed values are included in browser assets.
 

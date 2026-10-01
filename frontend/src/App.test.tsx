@@ -7,6 +7,7 @@ describe('application shell', () => {
   beforeEach(() => {
     window.localStorage.clear()
     delete document.documentElement.dataset.theme
+    document.documentElement.classList.remove('dark')
   })
 
   it('shows the required planning inputs and disclaimer', () => {
@@ -29,9 +30,10 @@ describe('application shell', () => {
 
   it('switches between curated light and dark themes', () => {
     render(<App />)
-    const toggle = screen.getByRole('button', { name: /switch to dark theme/i })
-    fireEvent.click(toggle)
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
-    expect(screen.getByRole('button', { name: /switch to light theme/i })).toBeInTheDocument()
+    const toggle = screen.getByRole('button', { name: /switch to light theme/i })
+    fireEvent.click(toggle)
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeInTheDocument()
   })
 })

@@ -1,24 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import MyLocationIcon from '@mui/icons-material/MyLocation'
-import MapIcon from '@mui/icons-material/Map'
-import RouteIcon from '@mui/icons-material/Route'
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Alert,
-  Autocomplete,
-  Box,
-  Button,
-  LinearProgress,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Info, LocateFixed, MapPinned, Route, TriangleAlert, X } from 'lucide-react'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Alert, AlertAction, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import { ApiError, autocompleteLocations, reverseGeocode } from '../../api/client'
 import type { TripPlanRequest } from '../../types/tripPlan'
 import { MapLocationPicker, type PinCoordinate } from './MapLocationPicker'
@@ -182,8 +172,7 @@ export function TripForm({
     return `${local}:00${zone.replace('GMT', '')}`
   }
   return (
-    <Box
-      component="form"
+    <form
       onSubmit={handleSubmit((value) =>
         onSubmit({ ...value, start_at: offsetStart(value.start_at, value.terminal_timezone) }),
       )}
@@ -193,32 +182,46 @@ export function TripForm({
     >
       <div className="form-intro">
         <span className="form-label">Plan a run</span>
-        <Typography variant="h2">Three stops. One compliant timeline.</Typography>
-        <Typography color="text.secondary">
-          Enter US locations in route order and tell us how much of the 70-hour cycle is already used.
-        </Typography>
+        <h2>Three stops. One compliant timeline.</h2>
+        <p>Enter US locations in route order and tell us how much of the 70-hour cycle is already used.</p>
       </div>
-      {apiError && <Alert severity="error">{apiError}</Alert>}
-      {loading && <LinearProgress aria-label="Planning progress" sx={{ mb: 2 }} />}
-      {geoError && (
-        <Alert
-          severity="info"
-          onClose={() => {
-            setGeoError(null)
-            setOfferDulles(false)
-          }}
-          action={
-            offerDulles ? (
-              <Button color="inherit" size="small" onClick={useDullesAirport}>
-                Use Washington Dulles Airport
-              </Button>
-            ) : undefined
-          }
-        >
-          {geoError}
+      {apiError && (
+        <Alert variant="destructive" className="app-alert">
+          <TriangleAlert />
+          <AlertDescription>{apiError}</AlertDescription>
         </Alert>
       )}
-      <Stack spacing={2.25}>
+      {loading && (
+        <div className="planning-loader" role="progressbar" aria-label="Planning progress">
+          <span />
+        </div>
+      )}
+      {geoError && (
+        <Alert className="app-alert info dismissible">
+          <Info />
+          <AlertDescription>{geoError}</AlertDescription>
+          <AlertAction>
+            {offerDulles && (
+              <Button type="button" variant="ghost" size="sm" onClick={useDullesAirport}>
+                Use Washington Dulles Airport
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Dismiss location message"
+              onClick={() => {
+                setGeoError(null)
+                setOfferDulles(false)
+              }}
+            >
+              <X />
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
+      <div className="form-stack">
         <div className="location-field">
           <span>01</span>
           <AddressField
@@ -230,14 +233,24 @@ export function TripForm({
             inputRef={register('current_location').ref}
             onChange={(value) => setValue('current_location', value, { shouldValidate: true })}
           />
-          <Button onClick={useLocation} startIcon={<MyLocationIcon />} aria-label="Use my current location">
+          <Button
+            type="button"
+            variant="ghost"
+            className="location-action"
+            onClick={useLocation}
+            aria-label="Use my current location"
+          >
+            <LocateFixed data-icon="inline-start" />
             Locate
           </Button>
           <Button
+            type="button"
+            variant="ghost"
+            className="location-action"
             onClick={() => setPickerField('current_location')}
-            startIcon={<MapIcon />}
             aria-label="Choose current location on map"
           >
+            <MapPinned data-icon="inline-start" />
             Map
           </Button>
         </div>
@@ -253,10 +266,13 @@ export function TripForm({
             onChange={(value) => setValue('pickup_location', value, { shouldValidate: true })}
           />
           <Button
+            type="button"
+            variant="ghost"
+            className="location-action"
             onClick={() => setPickerField('pickup_location')}
-            startIcon={<MapIcon />}
             aria-label="Choose pickup on map"
           >
+            <MapPinned data-icon="inline-start" />
             Map
           </Button>
         </div>
@@ -272,95 +288,109 @@ export function TripForm({
             onChange={(value) => setValue('dropoff_location', value, { shouldValidate: true })}
           />
           <Button
+            type="button"
+            variant="ghost"
+            className="location-action"
             onClick={() => setPickerField('dropoff_location')}
-            startIcon={<MapIcon />}
             aria-label="Choose drop-off on map"
           >
+            <MapPinned data-icon="inline-start" />
             Map
           </Button>
         </div>
         <div>
-          <TextField
-            label="Current cycle used"
-            type="number"
-            inputProps={{ min: 0, max: 70, step: 0.25 }}
-            error={!!errors.current_cycle_used_hours}
-            helperText={
-              errors.current_cycle_used_hours?.message ?? `${Math.max(0, 70 - cycle).toFixed(2)} hours remain`
-            }
-            {...register('current_cycle_used_hours', { valueAsNumber: true })}
-          />
-          <LinearProgress
-            variant="determinate"
-            value={Math.min(100, (cycle / 70) * 100)}
-            sx={{ mt: 1, maxWidth: 260, height: 7, borderRadius: 8 }}
-          />
+          <Field data-invalid={!!errors.current_cycle_used_hours} className="cycle-field">
+            <FieldLabel htmlFor="current-cycle-used">Current cycle used</FieldLabel>
+            <Input
+              id="current-cycle-used"
+              type="number"
+              min={0}
+              max={70}
+              step={0.25}
+              aria-invalid={!!errors.current_cycle_used_hours}
+              {...register('current_cycle_used_hours', { valueAsNumber: true })}
+            />
+            {errors.current_cycle_used_hours ? (
+              <FieldError errors={[errors.current_cycle_used_hours]} />
+            ) : (
+              <FieldDescription>{Math.max(0, 70 - cycle).toFixed(2)} hours remain</FieldDescription>
+            )}
+            <Progress value={Math.min(100, (cycle / 70) * 100)} aria-label="Cycle hours used" />
+          </Field>
         </div>
-      </Stack>
-      <Accordion disableGutters elevation={0} sx={{ my: 2, bgcolor: 'transparent' }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <strong>Trip and log options</strong>
-        </AccordionSummary>
-        <AccordionDetails>
-          <div className="advanced-grid">
-            <TextField
-              label="Trip start"
-              type="datetime-local"
-              InputLabelProps={{ shrink: true }}
-              {...register('start_at')}
-              error={!!errors.start_at}
-              helperText={errors.start_at?.message}
-            />
-            <TextField
-              label="Home-terminal timezone"
-              {...register('terminal_timezone')}
-              error={!!errors.terminal_timezone}
-              helperText={errors.terminal_timezone?.message}
-            />
-            <TextField
-              label="Driver name"
-              {...register('driver_name')}
-              error={!!errors.driver_name}
-              helperText={errors.driver_name?.message}
-            />
-            <TextField
-              label="Carrier"
-              {...register('carrier_name')}
-              error={!!errors.carrier_name}
-              helperText={errors.carrier_name?.message}
-            />
-            <TextField
-              label="Main office address"
-              {...register('main_office_address')}
-              error={!!errors.main_office_address}
-              helperText={errors.main_office_address?.message}
-            />
-            <TextField
-              label="Tractor / vehicle"
-              {...register('vehicle_number')}
-              error={!!errors.vehicle_number}
-              helperText={errors.vehicle_number?.message}
-            />
-            <TextField
-              label="Trailer"
-              {...register('trailer_number')}
-              error={!!errors.trailer_number}
-              helperText={errors.trailer_number?.message}
-            />
-            <TextField
-              label="Shipping document"
-              {...register('shipping_document_number')}
-              error={!!errors.shipping_document_number}
-              helperText={errors.shipping_document_number?.message}
-            />
-          </div>
-        </AccordionDetails>
+      </div>
+      <Accordion type="single" collapsible className="trip-options">
+        <AccordionItem value="trip-options">
+          <AccordionTrigger>Trip and log options</AccordionTrigger>
+          <AccordionContent>
+            <div className="advanced-grid">
+              <Field data-invalid={!!errors.start_at}>
+                <FieldLabel htmlFor="trip-start">Trip start</FieldLabel>
+                <Input
+                  id="trip-start"
+                  type="datetime-local"
+                  aria-invalid={!!errors.start_at}
+                  {...register('start_at')}
+                />
+                <FieldError errors={[errors.start_at]} />
+              </Field>
+              <Field data-invalid={!!errors.terminal_timezone}>
+                <FieldLabel htmlFor="terminal-timezone">Home-terminal timezone</FieldLabel>
+                <Input
+                  id="terminal-timezone"
+                  aria-invalid={!!errors.terminal_timezone}
+                  {...register('terminal_timezone')}
+                />
+                <FieldError errors={[errors.terminal_timezone]} />
+              </Field>
+              <Field data-invalid={!!errors.driver_name}>
+                <FieldLabel htmlFor="driver-name">Driver name</FieldLabel>
+                <Input id="driver-name" aria-invalid={!!errors.driver_name} {...register('driver_name')} />
+                <FieldError errors={[errors.driver_name]} />
+              </Field>
+              <Field data-invalid={!!errors.carrier_name}>
+                <FieldLabel htmlFor="carrier-name">Carrier</FieldLabel>
+                <Input id="carrier-name" aria-invalid={!!errors.carrier_name} {...register('carrier_name')} />
+                <FieldError errors={[errors.carrier_name]} />
+              </Field>
+              <Field data-invalid={!!errors.main_office_address}>
+                <FieldLabel htmlFor="office-address">Main office address</FieldLabel>
+                <Input
+                  id="office-address"
+                  aria-invalid={!!errors.main_office_address}
+                  {...register('main_office_address')}
+                />
+                <FieldError errors={[errors.main_office_address]} />
+              </Field>
+              <Field data-invalid={!!errors.vehicle_number}>
+                <FieldLabel htmlFor="vehicle-number">Tractor / vehicle</FieldLabel>
+                <Input id="vehicle-number" aria-invalid={!!errors.vehicle_number} {...register('vehicle_number')} />
+                <FieldError errors={[errors.vehicle_number]} />
+              </Field>
+              <Field data-invalid={!!errors.trailer_number}>
+                <FieldLabel htmlFor="trailer-number">Trailer</FieldLabel>
+                <Input id="trailer-number" aria-invalid={!!errors.trailer_number} {...register('trailer_number')} />
+                <FieldError errors={[errors.trailer_number]} />
+              </Field>
+              <Field data-invalid={!!errors.shipping_document_number}>
+                <FieldLabel htmlFor="shipping-document">Shipping document</FieldLabel>
+                <Input
+                  id="shipping-document"
+                  aria-invalid={!!errors.shipping_document_number}
+                  {...register('shipping_document_number')}
+                />
+                <FieldError errors={[errors.shipping_document_number]} />
+              </Field>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
       <div className="form-actions">
-        <Button variant="contained" size="large" type="submit" disabled={loading} startIcon={<RouteIcon />}>
+        <Button size="lg" type="submit" disabled={loading}>
+          <Route data-icon="inline-start" />
           {loading ? 'Building route & logs…' : 'Build trip plan'}
         </Button>
-        <Button type="button" onClick={loadSample} disabled={loading}>
+        <Button variant="ghost" type="button" onClick={loadSample} disabled={loading}>
           Load sample trip
         </Button>
       </div>
@@ -370,7 +400,7 @@ export function TripForm({
         onClose={() => setPickerField(null)}
         onConfirm={usePinnedLocation}
       />
-    </Box>
+    </form>
   )
 }
 
@@ -391,14 +421,30 @@ export function AddressField({
   inputRef?: (instance: HTMLInputElement | null) => void
   onChange: (value: string) => void
 }) {
+  const inputId = useId()
+  const listboxId = `${inputId}-options`
   const [options, setOptions] = useState<string[]>([])
+  const [open, setOpen] = useState(false)
+
   useEffect(() => {
+    if (value.trim().length < 2) {
+      setOptions([])
+      setOpen(false)
+      return
+    }
+
     const controller = new AbortController()
     const timer = window.setTimeout(() => {
       autocompleteLocations(value, demo, controller.signal)
-        .then(setOptions)
+        .then((nextOptions) => {
+          setOptions(nextOptions)
+          setOpen(nextOptions.length > 0)
+        })
         .catch(() => {
-          if (!controller.signal.aborted) setOptions([])
+          if (!controller.signal.aborted) {
+            setOptions([])
+            setOpen(false)
+          }
         })
     }, 350)
     return () => {
@@ -406,23 +452,59 @@ export function AddressField({
       window.clearTimeout(timer)
     }
   }, [value, demo])
+
+  const chooseOption = (option: string) => {
+    onChange(option)
+    setOptions([])
+    setOpen(false)
+  }
+
   return (
-    <Autocomplete
-      freeSolo
-      fullWidth
-      options={options}
-      inputValue={value}
-      onInputChange={(_, next) => onChange(next)}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          label={label}
+    <Field className="address-field" data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={inputId}>{label}</FieldLabel>
+      <div className="address-combobox">
+        <Input
+          ref={inputRef}
+          id={inputId}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={open}
+          aria-invalid={Boolean(error)}
+          aria-describedby={`${inputId}-help`}
+          autoComplete="off"
           placeholder={placeholder}
-          error={!!error}
-          helperText={error ?? 'US locations only'}
-          inputRef={inputRef}
+          value={value}
+          onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={() => setOpen(options.length > 0)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setOpen(false)
+          }}
         />
+        {open && options.length > 0 ? (
+          <div id={listboxId} className="address-options" role="listbox">
+            {options.map((option) => (
+              <button
+                key={option}
+                type="button"
+                role="option"
+                aria-selected={option === value}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => chooseOption(option)}
+              >
+                <MapPinned aria-hidden="true" />
+                <span>{option}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {error ? (
+        <FieldError id={`${inputId}-help`}>{error}</FieldError>
+      ) : (
+        <FieldDescription id={`${inputId}-help`}>US locations only</FieldDescription>
       )}
-    />
+    </Field>
   )
 }

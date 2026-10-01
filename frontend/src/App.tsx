@@ -1,30 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  CssBaseline,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
-  Tab,
-  Tabs,
-  ThemeProvider,
-  Tooltip,
-} from '@mui/material'
-import DownloadIcon from '@mui/icons-material/Download'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import PrintIcon from '@mui/icons-material/Print'
-import HistoryIcon from '@mui/icons-material/History'
-import LightModeIcon from '@mui/icons-material/LightMode'
-import LocalShippingIcon from '@mui/icons-material/LocalShipping'
-import UpdateIcon from '@mui/icons-material/Update'
 import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query'
 import { AnimatePresence, motion, MotionConfig } from 'motion/react'
+import { Download, History, Info, Moon, Printer, RefreshCw, Sun, TriangleAlert, Truck } from 'lucide-react'
 import { ApiError, createTripPlan, replanTrip } from './api/client'
-import { createHaulHourTheme, type ThemeMode } from './app/theme'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { DailyLogSvg } from './features/eld-logs/DailyLogSvg'
 import { RouteMap } from './features/route-map/RouteMap'
 import { TripForm } from './features/trip-form/TripForm'
@@ -36,6 +20,7 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1 } } 
 const minutes = (value: number) => `${Math.floor(value / 60)}h ${value % 60}m`
 const enter = { opacity: 0, y: 22 }
 const visible = { opacity: 1, y: 0 }
+type ThemeMode = 'light' | 'dark'
 
 function Results({
   plan,
@@ -114,53 +99,64 @@ function Results({
           </h2>
         </div>
         <div className="result-actions">
-          <Button onClick={onEdit}>Edit trip</Button>
-          <Button startIcon={<UpdateIcon />} onClick={onReplan}>
+          <Button variant="ghost" onClick={onEdit}>
+            Edit trip
+          </Button>
+          <Button variant="ghost" onClick={onReplan}>
+            <RefreshCw data-icon="inline-start" />
             Replan from progress
           </Button>
           {plan.plan_id !== originalPlan.plan_id && (
-            <Button startIcon={<HistoryIcon />} onClick={onViewOriginal}>
+            <Button variant="ghost" onClick={onViewOriginal}>
+              <History data-icon="inline-start" />
               View original
             </Button>
           )}
           {plan.plan_id === originalPlan.plan_id && latestPlan.plan_id !== originalPlan.plan_id && (
-            <Button startIcon={<UpdateIcon />} onClick={onViewLatest}>
+            <Button variant="ghost" onClick={onViewLatest}>
+              <RefreshCw data-icon="inline-start" />
               View updated
             </Button>
           )}
-          <Button startIcon={<DownloadIcon />} onClick={download}>
+          <Button variant="ghost" onClick={download}>
+            <Download data-icon="inline-start" />
             Download JSON
           </Button>
-          <Button startIcon={<PrintIcon />} variant="contained" onClick={() => window.print()}>
+          <Button onClick={() => window.print()}>
+            <Printer data-icon="inline-start" />
             Print logs
           </Button>
         </div>
       </motion.div>
       {plan.warnings.map((warning) => (
-        <Alert severity="info" key={warning} sx={{ mb: 2 }}>
-          {warning}
+        <Alert className="app-alert info" key={warning}>
+          <Info />
+          <AlertDescription>{warning}</AlertDescription>
         </Alert>
       ))}
       {plan.replan && (
-        <Alert severity="success" className="replan-summary" sx={{ mb: 2 }}>
-          <strong>Version {plan.plan_version}</strong> from parent {plan.parent_plan_id}.{' '}
-          <strong>Driver-reported checkpoint:</strong> {plan.replan.delay_minutes >= 0 ? '+' : ''}
-          {minutes(plan.replan.delay_minutes)} against the selected event. Remaining route:{' '}
-          {plan.summary.total_route_miles.toLocaleString()} mi; projected arrival shifted by{' '}
-          {minutes(
-            Math.abs(
-              Math.round(
-                (new Date(plan.summary.estimated_arrival).getTime() -
-                  new Date(originalPlan.summary.estimated_arrival).getTime()) /
-                  60000,
+        <Alert className="app-alert success replan-summary">
+          <Info />
+          <AlertDescription>
+            <strong>Version {plan.plan_version}</strong> from parent {plan.parent_plan_id}.{' '}
+            <strong>Driver-reported checkpoint:</strong> {plan.replan.delay_minutes >= 0 ? '+' : ''}
+            {minutes(plan.replan.delay_minutes)} against the selected event. Remaining route:{' '}
+            {plan.summary.total_route_miles.toLocaleString()} mi; projected arrival shifted by{' '}
+            {minutes(
+              Math.abs(
+                Math.round(
+                  (new Date(plan.summary.estimated_arrival).getTime() -
+                    new Date(originalPlan.summary.estimated_arrival).getTime()) /
+                    60000,
+                ),
               ),
-            ),
-          )}{' '}
-          {new Date(plan.summary.estimated_arrival) >= new Date(originalPlan.summary.estimated_arrival)
-            ? 'later'
-            : 'earlier'}{' '}
-          than the original. The remaining projection includes {plan.summary.daily_rests} daily rest(s) and{' '}
-          {plan.summary.cycle_restarts} cycle restart(s).
+            )}{' '}
+            {new Date(plan.summary.estimated_arrival) >= new Date(originalPlan.summary.estimated_arrival)
+              ? 'later'
+              : 'earlier'}{' '}
+            than the original. The remaining projection includes {plan.summary.daily_rests} daily rest(s) and{' '}
+            {plan.summary.cycle_restarts} cycle restart(s).
+          </AlertDescription>
         </Alert>
       )}
       <motion.div
@@ -184,26 +180,24 @@ function Results({
       <div className="compliance">
         <strong>HOS boundary checks</strong>
         {Object.entries(plan.summary.compliance).map(([rule, passed]) => (
-          <Chip
+          <Badge
             key={rule}
-            color={passed ? 'success' : 'error'}
-            size="small"
-            label={`${rule.replaceAll('_', ' ')}: ${passed ? 'passed' : 'review'}`}
-          />
+            variant={passed ? 'secondary' : 'destructive'}
+            className={passed ? 'compliance-badge passed' : 'compliance-badge'}
+          >
+            {rule.replaceAll('_', ' ')}: {passed ? 'passed' : 'review'}
+          </Badge>
         ))}
       </div>
-      <Box className="result-panel">
-        <Tabs
-          value={tab}
-          onChange={(_, value: number) => setTab(value)}
-          variant="scrollable"
-          aria-label="Trip plan sections"
-        >
-          <Tab label="Route" />
-          <Tab label="Itinerary" />
-          <Tab label="Directions" />
-          <Tab label="Daily logs" />
-          <Tab label="Assumptions" />
+      <div className="result-panel">
+        <Tabs value={String(tab)} onValueChange={(value) => setTab(Number(value))} aria-label="Trip plan sections">
+          <TabsList variant="line" className="plan-tabs">
+            <TabsTrigger value="0">Route</TabsTrigger>
+            <TabsTrigger value="1">Itinerary</TabsTrigger>
+            <TabsTrigger value="2">Directions</TabsTrigger>
+            <TabsTrigger value="3">Daily logs</TabsTrigger>
+            <TabsTrigger value="4">Assumptions</TabsTrigger>
+          </TabsList>
         </Tabs>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -241,16 +235,19 @@ function Results({
             {tab === 3 && (
               <div className="logs">
                 <Tabs
-                  value={logIndex}
-                  onChange={(_, value: number) => setLogIndex(value)}
-                  variant="scrollable"
+                  value={String(logIndex)}
+                  onValueChange={(value) => setLogIndex(Number(value))}
                   aria-label="Daily log dates"
                 >
-                  {plan.daily_logs.map((log) => (
-                    <Tab key={log.date} label={log.date} />
-                  ))}
+                  <TabsList variant="line" className="log-tabs">
+                    {plan.daily_logs.map((log, index) => (
+                      <TabsTrigger key={log.date} value={String(index)}>
+                        {log.date}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
                 </Tabs>
-                <Button onClick={() => setLogExpanded(true)} sx={{ mt: 1 }}>
+                <Button variant="outline" className="inspect-log" onClick={() => setLogExpanded(true)}>
                   Inspect log full screen
                 </Button>
                 <DailyLogSvg log={plan.daily_logs[logIndex]} eventSources={eventSources} />
@@ -264,23 +261,28 @@ function Results({
                     <li key={value}>{value}</li>
                   ))}
                 </ul>
-                <Alert severity="warning">{plan.disclaimer}</Alert>
+                <Alert className="app-alert warning">
+                  <TriangleAlert />
+                  <AlertDescription>{plan.disclaimer}</AlertDescription>
+                </Alert>
               </div>
             )}
           </motion.div>
         </AnimatePresence>
-      </Box>
+      </div>
       <div className="print-logs" aria-hidden="true">
         {plan.daily_logs.map((log) => (
           <DailyLogSvg key={`print-${log.date}`} log={log} eventSources={eventSources} />
         ))}
       </div>
-      <Dialog fullScreen open={logExpanded} onClose={() => setLogExpanded(false)} aria-labelledby="full-log-title">
-        <DialogTitle id="full-log-title" className="full-log-title">
-          Daily log inspection
-          <Button onClick={() => setLogExpanded(false)}>Close</Button>
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={logExpanded} onOpenChange={setLogExpanded}>
+        <DialogContent className="full-log-dialog" showCloseButton={false} aria-describedby={undefined}>
+          <DialogHeader className="full-log-title">
+            <DialogTitle>Daily log inspection</DialogTitle>
+            <Button variant="outline" onClick={() => setLogExpanded(false)}>
+              Close
+            </Button>
+          </DialogHeader>
           {plan.daily_logs[logIndex] && <DailyLogSvg log={plan.daily_logs[logIndex]} eventSources={eventSources} />}
         </DialogContent>
       </Dialog>
@@ -413,7 +415,7 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
     },
   })
   return (
-    <div className="app-shell" data-theme={mode}>
+    <div className="app-shell antialiased" data-theme={mode}>
       <header className="site-header">
         <div className="header-inner">
           <a className="brand" href="/" aria-label="HaulHour home">
@@ -421,28 +423,33 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
             <strong>HaulHour</strong>
           </a>
           <div className="header-context">
-            <Chip label="HOS planner" size="small" variant="outlined" />
+            <Badge variant="outline">HOS planner</Badge>
             <p>Route decisions and regulatory time in one driver plan.</p>
           </div>
-          <Tooltip title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} theme`}>
-            <IconButton
-              className="theme-toggle"
-              onClick={onToggleMode}
-              aria-label={`Switch to ${mode === 'dark' ? 'light' : 'dark'} theme`}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={mode}
-                  initial={{ opacity: 0, rotate: -40, scale: 0.7 }}
-                  animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                  exit={{ opacity: 0, rotate: 40, scale: 0.7 }}
-                  transition={{ duration: 0.18 }}
-                  className="theme-icon"
-                >
-                  {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-                </motion.span>
-              </AnimatePresence>
-            </IconButton>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="theme-toggle"
+                onClick={onToggleMode}
+                aria-label={`Switch to ${mode === 'dark' ? 'light' : 'dark'} theme`}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.span
+                    key={mode}
+                    initial={{ opacity: 0, rotate: -40, scale: 0.7 }}
+                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                    exit={{ opacity: 0, rotate: 40, scale: 0.7 }}
+                    transition={{ duration: 0.18 }}
+                    className="theme-icon"
+                  >
+                    {mode === 'dark' ? <Sun /> : <Moon />}
+                  </motion.span>
+                </AnimatePresence>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Switch to {mode === 'dark' ? 'light' : 'dark'} theme</TooltipContent>
           </Tooltip>
         </div>
       </header>
@@ -463,8 +470,11 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
             Plan the route, surface HOS boundaries, and inspect projected logs before the wheels turn.
           </motion.p>
           <motion.div variants={{ hidden: enter, show: visible }}>
-            <Button variant="contained" href="#planner" size="large" startIcon={<LocalShippingIcon />}>
-              Plan a trip
+            <Button asChild size="lg">
+              <a href="#planner">
+                <Truck data-icon="inline-start" />
+                Plan a trip
+              </a>
             </Button>
           </motion.div>
         </motion.div>
@@ -482,7 +492,7 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
               animate={{ x: [0, 92, 190] }}
               transition={{ duration: 6, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
             >
-              <LocalShippingIcon />
+              <Truck />
             </motion.span>
             <i className="route-node node-one" />
             <i className="route-node node-two" />
@@ -594,22 +604,21 @@ export default function App() {
   const [mode, setMode] = useState<ThemeMode>(() => {
     const saved = window.localStorage.getItem('haulhour-theme')
     if (saved === 'light' || saved === 'dark') return saved
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    return 'dark'
   })
-  const theme = useMemo(() => createHaulHourTheme(mode), [mode])
   useEffect(() => {
     document.documentElement.dataset.theme = mode
+    document.documentElement.classList.toggle('dark', mode === 'dark')
     document.documentElement.style.colorScheme = mode
     window.localStorage.setItem('haulhour-theme', mode)
   }, [mode])
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <MotionConfig reducedMotion="user">
-        <QueryClientProvider client={queryClient}>
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
           <Application mode={mode} onToggleMode={() => setMode((value) => (value === 'dark' ? 'light' : 'dark'))} />
-        </QueryClientProvider>
-      </MotionConfig>
-    </ThemeProvider>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   )
 }
