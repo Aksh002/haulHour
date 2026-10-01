@@ -13,6 +13,8 @@ from planner.api.serializers import (
     ReplanRequestSerializer,
     ReverseGeocodeSerializer,
     TripPlanRequestSerializer,
+    TripPlanResponseSerializer,
+    TripReplanResponseSerializer,
 )
 from planner.domain.models import Coordinate
 from planner.providers.base import RouteProviderError
@@ -56,24 +58,7 @@ class ReadyView(APIView):
 class TripPlanView(APIView):
     @extend_schema(
         request=TripPlanRequestSerializer,
-        responses=inline_serializer(
-            "TripPlanResponse",
-            {
-                "plan_id": serializers.CharField(),
-                "plan_version": serializers.IntegerField(),
-                "parent_plan_id": serializers.CharField(allow_null=True),
-                "demo_mode": serializers.BooleanField(),
-                "locations": serializers.ListField(child=serializers.DictField()),
-                "route_legs": serializers.ListField(child=serializers.DictField()),
-                "events": serializers.ListField(child=serializers.DictField()),
-                "stops": serializers.ListField(child=serializers.DictField()),
-                "daily_logs": serializers.ListField(child=serializers.DictField()),
-                "summary": serializers.DictField(),
-                "assumptions": serializers.ListField(child=serializers.CharField()),
-                "warnings": serializers.ListField(child=serializers.CharField()),
-                "disclaimer": serializers.CharField(),
-            },
-        ),
+        responses=TripPlanResponseSerializer,
     )
     def post(self, request):
         serializer = TripPlanRequestSerializer(data=request.data)
@@ -83,9 +68,17 @@ class TripPlanView(APIView):
         cache_key = f"trip-plan:{cache_digest}"
         cached_result = cache.get(cache_key)
         if cached_result is not None:
+            cache.set(
+                plan_context_key(cached_result["plan_id"]),
+                {"plan": cached_result, "request": dict(data)},
+                PLAN_CONTEXT_TTL_SECONDS,
+            )
             return Response(cached_result)
         try:
-            result = TripPlanningService(provider_for(data["demo_mode"])).plan(data)
+            result = TripPlanningService(
+                provider_for(data["demo_mode"]),
+                settings.PLANNING_PROVIDER_BUDGET_SECONDS,
+            ).plan(data)
         except RouteProviderError as exc:
             return Response(
                 {
@@ -110,25 +103,7 @@ class TripPlanView(APIView):
 class TripReplanView(APIView):
     @extend_schema(
         request=ReplanRequestSerializer,
-        responses=inline_serializer(
-            "TripReplanResponse",
-            {
-                "plan_id": serializers.CharField(),
-                "plan_version": serializers.IntegerField(),
-                "parent_plan_id": serializers.CharField(),
-                "demo_mode": serializers.BooleanField(),
-                "locations": serializers.ListField(child=serializers.DictField()),
-                "route_legs": serializers.ListField(child=serializers.DictField()),
-                "events": serializers.ListField(child=serializers.DictField()),
-                "stops": serializers.ListField(child=serializers.DictField()),
-                "daily_logs": serializers.ListField(child=serializers.DictField()),
-                "summary": serializers.DictField(),
-                "replan": serializers.DictField(),
-                "assumptions": serializers.ListField(child=serializers.CharField()),
-                "warnings": serializers.ListField(child=serializers.CharField()),
-                "disclaimer": serializers.CharField(),
-            },
-        ),
+        responses=TripReplanResponseSerializer,
     )
     def post(self, request):
         serializer = ReplanRequestSerializer(data=request.data)
@@ -148,7 +123,10 @@ class TripReplanView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         try:
-            result = TripReplanningService(provider_for(context["request"]["demo_mode"])).replan(context, data)
+            result = TripReplanningService(
+                provider_for(context["request"]["demo_mode"]),
+                settings.PLANNING_PROVIDER_BUDGET_SECONDS,
+            ).replan(context, data)
         except ReplanInputError as exc:
             return Response(
                 {
