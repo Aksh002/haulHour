@@ -16,6 +16,10 @@ class ReverseGeocodeResult:
 
 
 class RouteProvider(ABC):
+    def start_request_budget(self, seconds: float) -> None:
+        """Optionally constrain all provider calls made for one planning request."""
+        return None
+
     @abstractmethod
     def geocode(self, query: str) -> tuple[str, Coordinate]: ...
 

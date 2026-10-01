@@ -20,10 +20,12 @@ class ReplanInputError(ValueError):
 
 
 class TripReplanningService:
-    def __init__(self, provider: RouteProvider):
+    def __init__(self, provider: RouteProvider, provider_budget_seconds: float = 45):
         self.provider = provider
+        self.provider_budget_seconds = provider_budget_seconds
 
     def replan(self, context: dict, data: dict) -> dict:
+        self.provider.start_request_budget(self.provider_budget_seconds)
         original = context["plan"]
         original_request = context["request"]
         selected_index = next(

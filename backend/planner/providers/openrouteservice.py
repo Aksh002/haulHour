@@ -1,3 +1,6 @@
+import logging
+import time
+
 import requests
 from django.conf import settings
 from requests.adapters import HTTPAdapter
@@ -7,6 +10,7 @@ from planner.domain.models import Coordinate, RouteLeg, RouteStep
 from planner.providers.base import ReverseGeocodeResult, RouteProvider, RouteProviderError
 
 BASE_URL = "https://api.openrouteservice.org"
+logger = logging.getLogger("haulhour.provider")
 
 
 class OpenRouteServiceProvider(RouteProvider):
@@ -23,18 +27,42 @@ class OpenRouteServiceProvider(RouteProvider):
         )
         self.session = requests.Session()
         self.session.mount("https://", HTTPAdapter(max_retries=retry))
+        self.deadline: float | None = None
+
+    def start_request_budget(self, seconds: float) -> None:
+        self.deadline = time.monotonic() + seconds
+
+    def _timeout(self, maximum_read_seconds: float) -> tuple[float, float]:
+        if self.deadline is None:
+            return 3.05, maximum_read_seconds
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise RouteProviderError("The route provider exceeded the planning time budget")
+        return min(3.05, remaining), min(maximum_read_seconds, remaining)
 
     def _get(self, path: str, params: dict):
+        started = time.monotonic()
+        outcome = "error"
         try:
             response = self.session.get(
                 f"{BASE_URL}{path}",
                 params={**params, "api_key": self.api_key},
-                timeout=(3.05, 15),
+                timeout=self._timeout(15),
             )
             response.raise_for_status()
+            outcome = "success"
             return response.json()
         except (requests.RequestException, ValueError) as exc:
             raise RouteProviderError("The route provider could not complete the request") from exc
+        finally:
+            logger.info(
+                "provider_request",
+                extra={
+                    "operation": path.rsplit("/", 1)[-1],
+                    "outcome": outcome,
+                    "duration_ms": round((time.monotonic() - started) * 1000),
+                },
+            )
 
     def geocode(self, query: str):
         data = self._get("/geocode/search", {"text": query, "size": 1, "boundary.country": "US"})
@@ -75,6 +103,8 @@ class OpenRouteServiceProvider(RouteProvider):
         return result
 
     def directions(self, start_name, start, end_name, end, leg_id):
+        started = time.monotonic()
+        outcome = "error"
         try:
             response = self.session.post(
                 f"{BASE_URL}/v2/directions/driving-hgv/geojson",
@@ -83,12 +113,22 @@ class OpenRouteServiceProvider(RouteProvider):
                     "coordinates": [[start.longitude, start.latitude], [end.longitude, end.latitude]],
                     "instructions": True,
                 },
-                timeout=(3.05, 25),
+                timeout=self._timeout(25),
             )
             response.raise_for_status()
             feature = response.json()["features"][0]
+            outcome = "success"
         except (requests.RequestException, ValueError, KeyError, IndexError) as exc:
             raise RouteProviderError("The road route could not be calculated right now") from exc
+        finally:
+            logger.info(
+                "provider_request",
+                extra={
+                    "operation": "directions",
+                    "outcome": outcome,
+                    "duration_ms": round((time.monotonic() - started) * 1000),
+                },
+            )
         summary = feature["properties"]["summary"]
         coordinates = [Coordinate(lat, lon) for lon, lat in feature["geometry"]["coordinates"]]
         steps = [

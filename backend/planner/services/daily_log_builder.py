@@ -30,7 +30,17 @@ def build_daily_logs(events: list[ScheduleEvent], terminal_timezone: str, metada
                 continue
             if cursor < clipped_start:
                 segments.append(_segment(cursor, clipped_start, day_start, DutyStatus.OFF_DUTY, None, "Unplanned time"))
-            segments.append(_segment(clipped_start, clipped_end, day_start, event.duty_status, event.id, event.reason))
+            segments.append(
+                _segment(
+                    clipped_start,
+                    clipped_end,
+                    day_start,
+                    event.duty_status,
+                    event.id,
+                    event.reason,
+                    event.display_location,
+                )
+            )
             cursor = max(cursor, clipped_end)
         if cursor < day_end:
             segments.append(_segment(cursor, day_end, day_start, DutyStatus.OFF_DUTY, None, "Unplanned time"))
@@ -47,6 +57,7 @@ def build_daily_logs(events: list[ScheduleEvent], terminal_timezone: str, metada
                 "minute": segment["start_minute"],
                 "event_id": segment["event_id"],
                 "text": segment["reason"],
+                "location": segment.get("location", ""),
             }
             for segment in segments
             if segment["event_id"]
@@ -66,13 +77,14 @@ def build_daily_logs(events: list[ScheduleEvent], terminal_timezone: str, metada
     return logs
 
 
-def _segment(start, end, day_start, status, event_id, reason):
+def _segment(start, end, day_start, status, event_id, reason, location=""):
     return {
         "start_minute": round((start - day_start).total_seconds() / 60),
         "end_minute": round((end - day_start).total_seconds() / 60),
         "duty_status": status.value,
         "event_id": event_id,
         "reason": reason,
+        "location": location,
     }
 
 
@@ -88,6 +100,8 @@ def _event_miles_for_day(event, day_start, day_end):
 
 def validate_daily_logs(logs: list[dict]) -> None:
     for log in logs:
+        if log["total_miles"] < 0:
+            raise ValueError("Daily driving mileage cannot be negative")
         cursor = 0
         for segment in log["segments"]:
             if segment["start_minute"] != cursor or segment["end_minute"] <= cursor:
@@ -95,3 +109,14 @@ def validate_daily_logs(logs: list[dict]) -> None:
             cursor = segment["end_minute"]
         if cursor != 1440 or sum(log["totals_minutes"].values()) != 1440:
             raise ValueError("Daily log must cover exactly 1,440 minutes")
+        event_ids = {segment["event_id"] for segment in log["segments"] if segment["event_id"]}
+        remark_ids = {remark["event_id"] for remark in log["remarks"] if remark["event_id"]}
+        if not remark_ids.issubset(event_ids):
+            raise ValueError("Daily log remark does not correspond to a visible event segment")
+        transition_ids = {
+            segment["event_id"]
+            for previous, segment in zip(log["segments"], log["segments"][1:], strict=False)
+            if segment["event_id"] and segment["duty_status"] != previous["duty_status"]
+        }
+        if not transition_ids.issubset(remark_ids):
+            raise ValueError("Daily log is missing a duty-status transition remark")

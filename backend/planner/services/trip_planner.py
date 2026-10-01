@@ -2,6 +2,7 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from planner.domain.enums import EventType
+from planner.domain.rules import HosState
 from planner.providers.base import RouteProvider
 from planner.services.compliance_validator import validate_schedule
 from planner.services.daily_log_builder import build_daily_logs, validate_daily_logs
@@ -18,10 +19,12 @@ ASSUMPTIONS = [
 
 
 class TripPlanningService:
-    def __init__(self, provider: RouteProvider):
+    def __init__(self, provider: RouteProvider, provider_budget_seconds: float = 45):
         self.provider = provider
+        self.provider_budget_seconds = provider_budget_seconds
 
     def plan(self, data: dict) -> dict:
+        self.provider.start_request_budget(self.provider_budget_seconds)
         location_keys = ["current_location", "pickup_location", "dropoff_location"]
         locations = [self.provider.geocode(data[key]) for key in location_keys]
         legs = [
@@ -33,7 +36,13 @@ class TripPlanningService:
             data["start_at"],
             round(float(data["current_cycle_used_hours"]) * 60),
         )
-        validate_schedule(events, legs)
+        validate_schedule(
+            events,
+            legs,
+            initial_state=HosState(
+                cycle_used_minutes=round(float(data["current_cycle_used_hours"]) * 60),
+            ),
+        )
         progress = RouteProgress(legs)
         important = {
             EventType.PICKUP,
