@@ -85,11 +85,11 @@ class TripPlanView(APIView):
                     "error": {
                         "code": exc.code,
                         "message": str(exc),
-                        "field_errors": {},
+                        "field_errors": exc.field_errors,
                         "request_id": request.request_id,
                     }
                 },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                status=exc.status_code,
             )
         cache.set(cache_key, result, 15 * 60)
         cache.set(
@@ -145,11 +145,11 @@ class TripReplanView(APIView):
                     "error": {
                         "code": exc.code,
                         "message": str(exc),
-                        "field_errors": {},
+                        "field_errors": exc.field_errors,
                         "request_id": request.request_id,
                     }
                 },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                status=exc.status_code,
             )
         cache.set(
             plan_context_key(result["plan_id"]),

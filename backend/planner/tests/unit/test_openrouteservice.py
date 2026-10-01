@@ -2,7 +2,7 @@ import pytest
 import responses
 
 from planner.domain.models import Coordinate
-from planner.providers.base import RouteProviderError
+from planner.providers.base import RoutePointNotRoutableError, RouteProviderError
 from planner.providers.openrouteservice import OpenRouteServiceProvider
 
 
@@ -108,3 +108,27 @@ def test_provider_rejects_calls_after_overall_budget_is_exhausted():
     provider.start_request_budget(0)
     with pytest.raises(RouteProviderError, match="time budget"):
         provider.geocode("Chicago")
+
+
+@responses.activate
+def test_directions_exposes_the_unroutable_endpoint():
+    responses.post(
+        "https://api.openrouteservice.org/v2/directions/driving-hgv/geojson",
+        json={
+            "error": {
+                "code": 2010,
+                "message": "Could not find routable point within a radius of 1500.0 meters of specified coordinate 1",
+            }
+        },
+        status=404,
+    )
+    provider = OpenRouteServiceProvider("server-only-test-key")
+    with pytest.raises(RoutePointNotRoutableError) as captured:
+        provider.directions(
+            "Pickup",
+            Coordinate(39.436406, -84.115785),
+            "Rural drop-off",
+            Coordinate(39.432737, -103.136157),
+            "leg-2",
+        )
+    assert captured.value.point_index == 1

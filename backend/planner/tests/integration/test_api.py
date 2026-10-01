@@ -4,7 +4,8 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from planner.providers.base import ReverseGeocodeResult
+from planner.providers.base import ReverseGeocodeResult, RoutePointNotRoutableError
+from planner.providers.demo_fixture import DemoRouteProvider
 
 
 @pytest.fixture
@@ -66,6 +67,52 @@ def test_demo_plan_returns_complete_contract(client):
     assert response.data["daily_logs"]
     assert response.data["summary"]["total_route_miles"] == 2020
     assert all(sum(log["totals_minutes"].values()) == 1440 for log in response.data["daily_logs"])
+
+
+def test_plan_preserves_a_user_selected_coordinate(client):
+    coordinate = {"latitude": 39.73925, "longitude": -104.99035}
+    response = client.post(
+        reverse("trip-plan"),
+        {
+            "current_location": "Chicago, IL",
+            "pickup_location": "Denver, CO",
+            "pickup_location_coordinate": coordinate,
+            "dropoff_location": "Los Angeles, CA",
+            "current_cycle_used_hours": 1.25,
+            "start_at": "2026-10-05T06:00:00-05:00",
+            "terminal_timezone": "America/Chicago",
+            "demo_mode": True,
+        },
+        format="json",
+    )
+    assert response.status_code == 200, response.data
+    assert response.data["locations"][1]["coordinate"] == coordinate
+
+
+def test_plan_identifies_the_unroutable_location_field(client, monkeypatch):
+    class UnroutableDropoffProvider(DemoRouteProvider):
+        def directions(self, start_name, start, end_name, end, leg_id):
+            if leg_id == "leg-2":
+                raise RoutePointNotRoutableError(1)
+            return super().directions(start_name, start, end_name, end, leg_id)
+
+    monkeypatch.setattr("planner.api.views.provider_for", lambda demo: UnroutableDropoffProvider())
+    response = client.post(
+        reverse("trip-plan"),
+        {
+            "current_location": "Chicago, IL",
+            "pickup_location": "Denver, CO",
+            "dropoff_location": "Los Angeles, CA",
+            "current_cycle_used_hours": 2.5,
+            "start_at": "2026-10-05T06:00:00-05:00",
+            "terminal_timezone": "America/Chicago",
+            "demo_mode": True,
+        },
+        format="json",
+    )
+    assert response.status_code == 422
+    assert response.data["error"]["code"] == "ROUTE_POINT_NOT_ROUTABLE"
+    assert "dropoff_location" in response.data["error"]["field_errors"]
 
 
 def test_replan_preserves_reported_progress_and_regenerates_remaining_trip(client):

@@ -10,10 +10,11 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { ApiError, autocompleteLocations, reverseGeocode } from '../../api/client'
-import type { TripPlanRequest } from '../../types/tripPlan'
+import type { Coordinate, TripPlanRequest } from '../../types/tripPlan'
 import { MapLocationPicker, type PinCoordinate } from './MapLocationPicker'
 
 type LocationFieldName = 'current_location' | 'pickup_location' | 'dropoff_location'
+type LocationCoordinates = Partial<Record<LocationFieldName, Coordinate>>
 
 const locationLabels: Record<LocationFieldName, string> = {
   current_location: 'Current location',
@@ -22,6 +23,13 @@ const locationLabels: Record<LocationFieldName, string> = {
 }
 
 const DULLES_AIRPORT = 'Washington Dulles International Airport, Dulles, VA, USA'
+const DULLES_COORDINATE = { latitude: 38.9531, longitude: -77.4565 }
+
+const coordinatesFrom = (values?: TripPlanRequest | null): LocationCoordinates => ({
+  ...(values?.current_location_coordinate ? { current_location: values.current_location_coordinate } : {}),
+  ...(values?.pickup_location_coordinate ? { pickup_location: values.pickup_location_coordinate } : {}),
+  ...(values?.dropoff_location_coordinate ? { dropoff_location: values.dropoff_location_coordinate } : {}),
+})
 
 const schema = z.object({
   current_location: z.string().trim().min(3, 'Enter a current location.'),
@@ -83,6 +91,10 @@ export function TripForm({
   const [geoError, setGeoError] = useState<string | null>(null)
   const [offerDulles, setOfferDulles] = useState(false)
   const [pickerField, setPickerField] = useState<LocationFieldName | null>(null)
+  const [locationCoordinates, setLocationCoordinates] = useState<LocationCoordinates>(() =>
+    coordinatesFrom(initialValues),
+  )
+  useEffect(() => setLocationCoordinates(coordinatesFrom(initialValues)), [initialValues])
   useEffect(() => {
     const supported = new Set<keyof TripPlanRequest>([
       'current_location',
@@ -105,6 +117,7 @@ export function TripForm({
     if (fields[0]) setFocus(fields[0][0] as keyof TripPlanRequest)
   }, [apiFieldErrors, setError, setFocus])
   const loadSample = () => {
+    setLocationCoordinates({})
     setValue('current_location', 'Chicago, IL')
     setValue('pickup_location', 'Denver, CO')
     setValue('dropoff_location', 'Los Angeles, CA')
@@ -124,6 +137,7 @@ export function TripForm({
           setValue('current_location', await reverseGeocode(coords.latitude, coords.longitude), {
             shouldValidate: true,
           })
+          setLocationCoordinates((current) => ({ ...current, current_location: coords }))
           setValue('demo_mode', false)
         } catch (error) {
           if (error instanceof ApiError && error.code === 'LOCATION_OUTSIDE_US') {
@@ -142,6 +156,7 @@ export function TripForm({
   }
   const useDullesAirport = () => {
     setValue('current_location', DULLES_AIRPORT, { shouldValidate: true })
+    setLocationCoordinates((current) => ({ ...current, current_location: DULLES_COORDINATE }))
     setValue('demo_mode', false)
     setGeoError(null)
     setOfferDulles(false)
@@ -151,6 +166,7 @@ export function TripForm({
     try {
       const label = await reverseGeocode(coordinate.latitude, coordinate.longitude)
       setValue(pickerField, label, { shouldValidate: true })
+      setLocationCoordinates((current) => ({ ...current, [pickerField]: coordinate }))
       setValue('demo_mode', false)
       setGeoError(null)
       setOfferDulles(false)
@@ -171,10 +187,30 @@ export function TripForm({
         .find((part) => part.type === 'timeZoneName')?.value ?? 'GMT-05:00'
     return `${local}:00${zone.replace('GMT', '')}`
   }
+  const updateLocationText = (field: LocationFieldName, value: string) => {
+    setValue(field, value, { shouldValidate: true })
+    setLocationCoordinates((current) => {
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
   return (
     <form
       onSubmit={handleSubmit((value) =>
-        onSubmit({ ...value, start_at: offsetStart(value.start_at, value.terminal_timezone) }),
+        onSubmit({
+          ...value,
+          start_at: offsetStart(value.start_at, value.terminal_timezone),
+          ...(locationCoordinates.current_location
+            ? { current_location_coordinate: locationCoordinates.current_location }
+            : {}),
+          ...(locationCoordinates.pickup_location
+            ? { pickup_location_coordinate: locationCoordinates.pickup_location }
+            : {}),
+          ...(locationCoordinates.dropoff_location
+            ? { dropoff_location_coordinate: locationCoordinates.dropoff_location }
+            : {}),
+        }),
       )}
       noValidate
       className="trip-form"
@@ -231,7 +267,7 @@ export function TripForm({
             demo={demoMode}
             error={errors.current_location?.message}
             inputRef={register('current_location').ref}
-            onChange={(value) => setValue('current_location', value, { shouldValidate: true })}
+            onChange={(value) => updateLocationText('current_location', value)}
           />
           <Button
             type="button"
@@ -263,7 +299,7 @@ export function TripForm({
             demo={demoMode}
             error={errors.pickup_location?.message}
             inputRef={register('pickup_location').ref}
-            onChange={(value) => setValue('pickup_location', value, { shouldValidate: true })}
+            onChange={(value) => updateLocationText('pickup_location', value)}
           />
           <Button
             type="button"
@@ -285,7 +321,7 @@ export function TripForm({
             demo={demoMode}
             error={errors.dropoff_location?.message}
             inputRef={register('dropoff_location').ref}
-            onChange={(value) => setValue('dropoff_location', value, { shouldValidate: true })}
+            onChange={(value) => updateLocationText('dropoff_location', value)}
           />
           <Button
             type="button"

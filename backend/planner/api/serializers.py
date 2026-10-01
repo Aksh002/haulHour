@@ -5,10 +5,18 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 
 
+class InputCoordinateSerializer(serializers.Serializer):
+    latitude = serializers.FloatField(min_value=-90, max_value=90)
+    longitude = serializers.FloatField(min_value=-180, max_value=180)
+
+
 class TripPlanRequestSerializer(serializers.Serializer):
     current_location = serializers.CharField(min_length=3, max_length=240, trim_whitespace=True)
     pickup_location = serializers.CharField(min_length=3, max_length=240, trim_whitespace=True)
     dropoff_location = serializers.CharField(min_length=3, max_length=240, trim_whitespace=True)
+    current_location_coordinate = InputCoordinateSerializer(required=False)
+    pickup_location_coordinate = InputCoordinateSerializer(required=False)
+    dropoff_location_coordinate = InputCoordinateSerializer(required=False)
     current_cycle_used_hours = serializers.DecimalField(max_digits=4, decimal_places=2, min_value=0, max_value=70)
     start_at = serializers.DateTimeField(required=False)
     terminal_timezone = serializers.CharField(required=False, default=settings.DEFAULT_TERMINAL_TIMEZONE, max_length=64)

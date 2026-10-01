@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 
 import requests
@@ -7,7 +8,12 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from planner.domain.models import Coordinate, RouteLeg, RouteStep
-from planner.providers.base import ReverseGeocodeResult, RouteProvider, RouteProviderError
+from planner.providers.base import (
+    ReverseGeocodeResult,
+    RoutePointNotRoutableError,
+    RouteProvider,
+    RouteProviderError,
+)
 
 BASE_URL = "https://api.openrouteservice.org"
 logger = logging.getLogger("haulhour.provider")
@@ -112,12 +118,25 @@ class OpenRouteServiceProvider(RouteProvider):
                 json={
                     "coordinates": [[start.longitude, start.latitude], [end.longitude, end.latitude]],
                     "instructions": True,
+                    "radiuses": [settings.ROUTING_SNAP_RADIUS_METERS, settings.ROUTING_SNAP_RADIUS_METERS],
                 },
                 timeout=self._timeout(25),
             )
+            if response.status_code == 404:
+                try:
+                    provider_error = response.json().get("error", {})
+                except ValueError:
+                    provider_error = {}
+                if provider_error.get("code") == 2010:
+                    match = re.search(r"coordinate\s+([01])", str(provider_error.get("message", "")))
+                    if match:
+                        outcome = "point_not_routable"
+                        raise RoutePointNotRoutableError(int(match.group(1)))
             response.raise_for_status()
             feature = response.json()["features"][0]
             outcome = "success"
+        except RoutePointNotRoutableError:
+            raise
         except (requests.RequestException, ValueError, KeyError, IndexError) as exc:
             raise RouteProviderError("The road route could not be calculated right now") from exc
         finally:

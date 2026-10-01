@@ -305,9 +305,7 @@ select {
   overflow: hidden;
   border: 1px solid var(--hero-line);
   border-radius: 16px;
-  background:
-    linear-gradient(145deg, var(--glass-highlight), transparent 45%),
-    var(--hero-panel);
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 45%), var(--hero-panel);
   backdrop-filter: blur(22px) saturate(130%);
   box-shadow:
     inset 0 1px 0 var(--glass-edge),
@@ -418,9 +416,7 @@ select {
   padding: clamp(26px, 5vw, 52px);
   border: 1px solid var(--line);
   border-radius: 16px;
-  background:
-    linear-gradient(145deg, var(--glass-highlight), transparent 30%),
-    var(--glass-strong);
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 30%), var(--glass-strong);
   backdrop-filter: blur(24px) saturate(130%);
   box-shadow:
     inset 0 1px 0 var(--glass-edge),
@@ -584,11 +580,11 @@ select {
   overflow-y: auto;
   padding: 22px;
   border: 1px solid var(--line);
-  background:
-    linear-gradient(145deg, var(--glass-highlight), transparent 32%),
-    var(--glass-strong);
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 32%), var(--glass-strong);
   backdrop-filter: blur(26px) saturate(135%);
-  box-shadow: inset 0 1px 0 var(--glass-edge), var(--shadow);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    var(--shadow);
 }
 
 .replan-dialog {
@@ -598,11 +594,11 @@ select {
   overflow-y: auto;
   padding: 22px;
   border: 1px solid var(--line);
-  background:
-    linear-gradient(145deg, var(--glass-highlight), transparent 32%),
-    var(--glass-strong);
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 32%), var(--glass-strong);
   backdrop-filter: blur(26px) saturate(135%);
-  box-shadow: inset 0 1px 0 var(--glass-edge), var(--shadow);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    var(--shadow);
 }
 
 .map-picker-dialog [data-slot='dialog-title'],
@@ -802,6 +798,17 @@ select {
   background: currentColor;
 }
 
+.plan-meta [role='text'] {
+  display: inline-flex;
+  min-width: 5.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-meta-encrypted {
+  color: var(--text-muted);
+  opacity: 0.68;
+}
+
 .results-head h2 {
   max-width: 720px;
   margin: 0;
@@ -891,9 +898,7 @@ select {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background:
-    linear-gradient(145deg, var(--glass-highlight), transparent 26%),
-    var(--glass-strong) !important;
+  background: linear-gradient(145deg, var(--glass-highlight), transparent 26%), var(--glass-strong) !important;
   backdrop-filter: blur(22px) saturate(130%);
   box-shadow:
     inset 0 1px 0 var(--glass-edge),

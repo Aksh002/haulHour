@@ -41,4 +41,20 @@ describe('TripForm', () => {
     render(<TripForm onSubmit={vi.fn()} loading apiError={null} initialValues={request} />)
     expect(screen.getByRole('button', { name: /Building route & logs/ })).toBeDisabled()
   })
+
+  it('preserves a coordinate selected for a location when submitting', async () => {
+    const onSubmit = vi.fn()
+    const pickup = { latitude: 39.73925, longitude: -104.99035 }
+    render(
+      <TripForm
+        onSubmit={onSubmit}
+        loading={false}
+        apiError={null}
+        initialValues={{ ...request, pickup_location_coordinate: pickup }}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Build trip plan' }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit.mock.calls[0][0].pickup_location_coordinate).toEqual(pickup)
+  })
 })

@@ -5,7 +5,24 @@ from planner.domain.models import Coordinate, RouteLeg
 
 
 class RouteProviderError(RuntimeError):
-    code = "ROUTE_PROVIDER_UNAVAILABLE"
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "ROUTE_PROVIDER_UNAVAILABLE",
+        field_errors: dict[str, list[str]] | None = None,
+        status_code: int = 503,
+    ):
+        super().__init__(message)
+        self.code = code
+        self.field_errors = field_errors or {}
+        self.status_code = status_code
+
+
+class RoutePointNotRoutableError(RouteProviderError):
+    def __init__(self, point_index: int):
+        super().__init__("A route point is not close enough to an HGV-routable road")
+        self.point_index = point_index
 
 
 @dataclass(frozen=True)

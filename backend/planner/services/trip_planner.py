@@ -2,8 +2,9 @@ from dataclasses import asdict
 from uuid import uuid4
 
 from planner.domain.enums import EventType
+from planner.domain.models import Coordinate
 from planner.domain.rules import HosState
-from planner.providers.base import RouteProvider
+from planner.providers.base import RoutePointNotRoutableError, RouteProvider, RouteProviderError
 from planner.services.compliance_validator import validate_schedule
 from planner.services.daily_log_builder import build_daily_logs, validate_daily_logs
 from planner.services.hos_scheduler import schedule_trip
@@ -26,10 +27,10 @@ class TripPlanningService:
     def plan(self, data: dict) -> dict:
         self.provider.start_request_budget(self.provider_budget_seconds)
         location_keys = ["current_location", "pickup_location", "dropoff_location"]
-        locations = [self.provider.geocode(data[key]) for key in location_keys]
+        locations = [self._resolve_location(data, key) for key in location_keys]
         legs = [
-            self.provider.directions(locations[0][0], locations[0][1], locations[1][0], locations[1][1], "leg-1"),
-            self.provider.directions(locations[1][0], locations[1][1], locations[2][0], locations[2][1], "leg-2"),
+            self._route_leg(locations[0], locations[1], "current_location", "pickup_location", "leg-1"),
+            self._route_leg(locations[1], locations[2], "pickup_location", "dropoff_location", "leg-2"),
         ]
         events = schedule_trip(
             legs,
@@ -121,6 +122,43 @@ class TripPlanningService:
                 "Projected log for assessment demonstration; not an electronic record of actual duty activity."
             ),
         }
+
+    def _resolve_location(self, data: dict, location_key: str) -> tuple[str, Coordinate]:
+        coordinate_data = data.get(f"{location_key}_coordinate")
+        if not coordinate_data:
+            return self.provider.geocode(data[location_key])
+        coordinate = Coordinate(coordinate_data["latitude"], coordinate_data["longitude"])
+        details = self.provider.reverse_geocode_details(coordinate)
+        if not details.is_supported_country:
+            message = "Choose a location within the supported United States service area."
+            raise RouteProviderError(
+                message,
+                code="LOCATION_OUTSIDE_US",
+                field_errors={location_key: [message]},
+                status_code=422,
+            )
+        return data[location_key], coordinate
+
+    def _route_leg(
+        self,
+        start: tuple[str, Coordinate],
+        end: tuple[str, Coordinate],
+        start_field: str,
+        end_field: str,
+        leg_id: str,
+    ):
+        try:
+            return self.provider.directions(start[0], start[1], end[0], end[1], leg_id)
+        except RoutePointNotRoutableError as exc:
+            field = start_field if exc.point_index == 0 else end_field
+            label = start[0] if exc.point_index == 0 else end[0]
+            detail = "Move the pin to a truck-accessible road or choose a more precise facility entrance."
+            raise RouteProviderError(
+                f"{label} is not close enough to an HGV-routable road. {detail}",
+                code="ROUTE_POINT_NOT_ROUTABLE",
+                field_errors={field: [detail]},
+                status_code=422,
+            ) from exc
 
     @staticmethod
     def _leg_dict(leg):

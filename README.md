@@ -96,6 +96,7 @@ Open `http://localhost:5173`. Django automatically loads the repository-root `.e
 | `CORS_ALLOWED_ORIGINS`             | Comma-separated exact frontend origins                                            |
 | `OPENROUTESERVICE_API_KEY`         | Server-only geocoding and HGV directions key                                      |
 | `PLANNING_PROVIDER_BUDGET_SECONDS` | Maximum combined routing-provider time per plan or replan; defaults to 45 seconds |
+| `ROUTING_SNAP_RADIUS_METERS`       | Maximum distance used to snap a stop to an HGV-routable road; defaults to 1500    |
 | `VITE_API_BASE_URL`                | Public backend API base, e.g. `https://api.example.com/api`                       |
 
 Never prefix the routing key with `VITE_`; Vite-prefixed values are included in browser assets.

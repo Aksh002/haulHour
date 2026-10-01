@@ -112,6 +112,9 @@ export interface TripPlanRequest {
   current_location: string
   pickup_location: string
   dropoff_location: string
+  current_location_coordinate?: Coordinate
+  pickup_location_coordinate?: Coordinate
+  dropoff_location_coordinate?: Coordinate
   current_cycle_used_hours: number
   start_at: string
   terminal_timezone: string

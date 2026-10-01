@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { EncryptedText } from '@/components/ui/encrypted-text'
 import { DailyLogSvg } from './features/eld-logs/DailyLogSvg'
 import { RouteMap } from './features/route-map/RouteMap'
 import { TripForm } from './features/trip-form/TripForm'
@@ -91,7 +92,14 @@ function Results({
       >
         <div>
           <span className="plan-meta">
-            Plan ready <i /> version {plan.plan_version} <i /> {plan.demo_mode ? 'demo route' : 'live route'}
+            <EncryptedText
+              text="Plan ready"
+              charset="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+              revealDelayMs={42}
+              flipDelayMs={48}
+              encryptedClassName="plan-meta-encrypted"
+            />{' '}
+            <i /> version {plan.plan_version} <i /> {plan.demo_mode ? 'demo route' : 'live route'}
           </span>
           <h2>
             {plan.locations[0].label} <span>via</span> {plan.locations[1].label} <span>to</span>{' '}
