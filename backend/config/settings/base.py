@@ -54,3 +54,27 @@ ROUTING_PROVIDER = os.getenv("ROUTING_PROVIDER", "openrouteservice")
 OPENROUTESERVICE_API_KEY = os.getenv("OPENROUTESERVICE_API_KEY", "")
 DEFAULT_TERMINAL_TIMEZONE = "America/Chicago"
 DEFAULT_TRIP_START = "2026-10-05T06:00:00-05:00"
+PLANNING_PROVIDER_BUDGET_SECONDS = float(os.getenv("PLANNING_PROVIDER_BUDGET_SECONDS", "45"))
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "request": {
+            "format": (
+                "event=%(message)s request_id=%(request_id)s method=%(method)s path=%(path)s "
+                "status=%(status_code)s error_code=%(error_code)s duration_ms=%(duration_ms)s"
+            )
+        },
+        "provider": {
+            "format": "event=%(message)s operation=%(operation)s outcome=%(outcome)s duration_ms=%(duration_ms)s"
+        },
+    },
+    "handlers": {
+        "request_console": {"class": "logging.StreamHandler", "formatter": "request"},
+        "provider_console": {"class": "logging.StreamHandler", "formatter": "provider"},
+    },
+    "loggers": {
+        "haulhour.request": {"handlers": ["request_console"], "level": "INFO", "propagate": False},
+        "haulhour.provider": {"handlers": ["provider_console"], "level": "INFO", "propagate": False},
+    },
+}
