@@ -9,12 +9,15 @@ HaulHour is an assessment planning demonstration, not a certified ELD and not an
 ## What it does
 
 - Routes current location → pickup → drop-off through OpenRouteService's heavy-goods-vehicle profile
+- Supports US-only autocomplete, browser location, and a click-or-drag map pin for exact facilities
 - Plans pickup, drop-off, fuel, 30-minute breaks, 10-hour daily rest, and 34-hour cycle restart events
 - Enforces the 8-hour break, 11-hour drive, 14-hour window, and aggregate 70-hour cycle boundaries
 - Projects every result from one deterministic backend event timeline
 - Connects interactive route markers to a chronological itinerary and provider directions
 - Builds complete home-terminal daily logs with exactly 24 hours of semantic segments
+- Shows log metadata, location-aware remarks, and full-screen log inspection
 - Prints one crisp ELD-style SVG log per page and downloads the canonical plan as JSON
+- Replans from a driver-reported checkpoint while preserving the original plan and carried HOS clocks
 - Includes an explicit, deterministic 2,020-mile demo route for reliable review
 
 ## Architecture
@@ -46,6 +49,9 @@ The browser never recalculates schedule totals. Route geometry, stop markers, su
 - Logs use the selected home-terminal timezone (`America/Chicago` by default).
 - Split sleeper, adverse-driving-condition extensions, live traffic, real vehicle telemetry, and historical ELD records are excluded.
 - The demo fixture is clearly labelled and must not be represented as a live road route.
+- Locations outside the United States are rejected because this version models US FMCSA rules. Browser location offers Washington Dulles Airport only as an explicit user-selected fallback.
+- Replan context is cached for 24 hours and is not persistent trip history. A backend restart or cache eviction can require creating a fresh plan.
+- Replanned completed events and variances are driver-reported, not verified ELD records. The regenerated suffix remains projected.
 
 See [the product contract](docs/PRODUCT_SPEC.md), [decision log](docs/DECISIONS.md), and [acceptance criteria](docs/ACCEPTANCE_CRITERIA.md).
 
@@ -74,7 +80,7 @@ Set-Location frontend
 npm run dev
 ```
 
-Open `http://localhost:5173`. “Load sample trip” works without an external key. Live address search and routing require `OPENROUTESERVICE_API_KEY` in the backend environment.
+Open `http://localhost:5173`. Django automatically loads the repository-root `.env` without overriding process-level deployment variables. “Load sample trip” works without an external key; live address search and routing require `OPENROUTESERVICE_API_KEY`.
 
 ## Environment variables
 
@@ -85,6 +91,7 @@ Open `http://localhost:5173`. “Load sample trip” works without an external k
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated backend host names |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated exact frontend origins |
 | `OPENROUTESERVICE_API_KEY` | Server-only geocoding and HGV directions key |
+| `PLANNING_PROVIDER_BUDGET_SECONDS` | Maximum combined routing-provider time per plan or replan; defaults to 45 seconds |
 | `VITE_API_BASE_URL` | Public backend API base, e.g. `https://api.example.com/api` |
 
 Never prefix the routing key with `VITE_`; Vite-prefixed values are included in browser assets.
@@ -98,6 +105,7 @@ Never prefix the routing key with `VITE_`; Vite-prefixed values are included in 
 
 Set-Location frontend
 npm run lint
+npm run format:check
 npm test
 npm run build
 npm run test:e2e
@@ -113,6 +121,7 @@ The Playwright command starts both development servers. Install its Chromium bin
 - `GET /api/locations/autocomplete/?q=...` — server-side address search
 - `POST /api/locations/reverse/` — browser-location reverse geocoding
 - `POST /api/trips/plan/` — complete canonical trip plan
+- `POST /api/trips/replan/` — versioned plan from a reported checkpoint within the 24-hour cache window
 
 Example request:
 
@@ -128,10 +137,14 @@ Example request:
 }
 ```
 
-The response includes normalized `locations`, two `route_legs`, canonical `events`, `stops`, `summary`, `daily_logs`, `assumptions`, `warnings`, and the assessment disclaimer. Validation and provider failures use a stable error envelope with a request ID.
+The response includes normalized `locations`, `route_legs`, canonical `events`, `stops`, `summary`, `daily_logs`, `assumptions`, `warnings`, and the assessment disclaimer. A replan also includes its version, parent plan ID, checkpoint, delay, and reported/projected event sources. Validation and provider failures use a stable error envelope with a request ID.
 
 ## Deployment
 
 `render.yaml` configures the backend and `frontend/vercel.json` configures the frontend fallback. In Render, set the host, CORS origin, and routing key. In Vercel, set `VITE_API_BASE_URL` to the deployed Render `/api` URL. Then follow the [deployment and production smoke record](docs/DEPLOYMENT.md), check print preview, and replace the URL placeholders at the top of this README.
 
 The recording outline is in [docs/LOOM_SCRIPT.md](docs/LOOM_SCRIPT.md).
+
+An assessment-aligned foreground location enhancement is specified separately in [the live-position upgrade plan](docs/LIVE_POSITION_UPGRADE_PLAN.md). It intentionally excludes background tracking, navigation, and automatic HOS rescheduling.
+
+The implemented [replan-from-reported-progress plan](docs/REPLAN_FROM_PROGRESS_UPGRADE_PLAN.md) documents the user-initiated, versioned workflow that preserves completed events and regenerates only the unfinished projected schedule.
