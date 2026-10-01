@@ -8,7 +8,7 @@ export function DailyLogSvg({ log, eventSources = {} }: { log: DailyLog; eventSo
     <article className="log-sheet">
       <div className="log-heading">
         <div>
-          <span className="eyebrow">Driver's daily log</span>
+          <span className="log-label">Driver's daily log</span>
           <h3>{new Date(`${log.date}T12:00:00`).toLocaleDateString(undefined, { dateStyle: 'long' })}</h3>
         </div>
         <div>
@@ -19,31 +19,31 @@ export function DailyLogSvg({ log, eventSources = {} }: { log: DailyLog; eventSo
       <dl className="log-metadata">
         <div>
           <dt>Driver</dt>
-          <dd>{log.metadata.driver_name || '—'}</dd>
+          <dd>{log.metadata.driver_name || 'Not provided'}</dd>
         </div>
         <div>
           <dt>Carrier</dt>
-          <dd>{log.metadata.carrier_name || '—'}</dd>
+          <dd>{log.metadata.carrier_name || 'Not provided'}</dd>
         </div>
         <div>
           <dt>Main office</dt>
-          <dd>{log.metadata.main_office_address || '—'}</dd>
+          <dd>{log.metadata.main_office_address || 'Not provided'}</dd>
         </div>
         <div>
           <dt>Vehicle</dt>
-          <dd>{log.metadata.vehicle_number || '—'}</dd>
+          <dd>{log.metadata.vehicle_number || 'Not provided'}</dd>
         </div>
         <div>
           <dt>Trailer</dt>
-          <dd>{log.metadata.trailer_number || '—'}</dd>
+          <dd>{log.metadata.trailer_number || 'Not provided'}</dd>
         </div>
         <div>
           <dt>Shipping document</dt>
-          <dd>{log.metadata.shipping_document_number || '—'}</dd>
+          <dd>{log.metadata.shipping_document_number || 'Not provided'}</dd>
         </div>
       </dl>
       <svg viewBox="0 0 980 280" role="img" aria-label={`ELD-style duty graph for ${log.date}`}>
-        <rect x="130" y="41" width="720" height="168" fill="#fff" stroke="#17393d" />
+        <rect x="130" y="41" width="720" height="168" fill="#fcfdfc" stroke="#17393d" />
         {Array.from({ length: 97 }, (_, index) => index * 15).map((minute) => (
           <line
             key={minute}
@@ -117,7 +117,7 @@ export function DailyLogSvg({ log, eventSources = {} }: { log: DailyLog; eventSo
               {String(Math.floor(remark.minute / 60)).padStart(2, '0')}:{String(remark.minute % 60).padStart(2, '0')}
             </time>{' '}
             {remark.text}
-            {remark.location ? ` — ${remark.location}` : ''}
+            {remark.location ? ` - ${remark.location}` : ''}
           </p>
         ))}
       </div>

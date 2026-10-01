@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.failed) {
       return (
         <main className="fatal-error" role="alert">
-          <span className="eyebrow">Something went wrong</span>
+          <span className="form-label">Something went wrong</span>
           <h1>The planner interface could not continue.</h1>
           <p>Your trip has not been submitted again. Reload the page to start from a clean state.</p>
           <Button variant="contained" onClick={() => window.location.reload()}>

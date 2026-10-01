@@ -97,7 +97,7 @@ export function ReplanDialog({
             >
               {selectableEvents.map((event) => (
                 <MenuItem key={event.id} value={event.id}>
-                  {event.event_type.replaceAll('_', ' ')} · {new Date(event.end_at).toLocaleString()}
+                  {event.event_type.replaceAll('_', ' ')}, {new Date(event.end_at).toLocaleString()}
                 </MenuItem>
               ))}
             </Select>

@@ -58,7 +58,7 @@ export function RouteMap({
         <CircleMarker
           center={[center.latitude, center.longitude]}
           radius={8}
-          pathOptions={{ color: '#fff', weight: 3, fillColor: eventColors.CURRENT_LOCATION, fillOpacity: 1 }}
+          pathOptions={{ color: '#fffaf7', weight: 3, fillColor: eventColors.CURRENT_LOCATION, fillOpacity: 1 }}
         >
           <Popup>
             <strong>Current location</strong>
@@ -74,7 +74,7 @@ export function RouteMap({
               center={[stop.coordinate!.latitude, stop.coordinate!.longitude]}
               radius={selectedId === stop.id ? 11 : 8}
               pathOptions={{
-                color: '#fff',
+                color: '#fffaf7',
                 weight: 3,
                 fillColor: eventColors[stop.event_type] || '#142b2e',
                 fillOpacity: 1,
@@ -86,7 +86,7 @@ export function RouteMap({
                 <br />
                 {stop.display_location}
                 <br />
-                {new Date(stop.start_at).toLocaleString([], { timeZone: timezone })}–
+                {new Date(stop.start_at).toLocaleString([], { timeZone: timezone })} -{' '}
                 {new Date(stop.end_at).toLocaleTimeString([], {
                   hour: 'numeric',
                   minute: '2-digit',

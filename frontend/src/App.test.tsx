@@ -1,9 +1,14 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import axe from 'axe-core'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 
 describe('application shell', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    delete document.documentElement.dataset.theme
+  })
+
   it('shows the required planning inputs and disclaimer', () => {
     render(<App />)
     expect(screen.getByRole('combobox', { name: /^current location$/i })).toBeInTheDocument()
@@ -20,5 +25,13 @@ describe('application shell', () => {
     })
     const critical = results.violations.filter((violation) => violation.impact === 'critical')
     expect(critical).toEqual([])
+  })
+
+  it('switches between curated light and dark themes', () => {
+    render(<App />)
+    const toggle = screen.getByRole('button', { name: /switch to dark theme/i })
+    fireEvent.click(toggle)
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    expect(screen.getByRole('button', { name: /switch to light theme/i })).toBeInTheDocument()
   })
 })

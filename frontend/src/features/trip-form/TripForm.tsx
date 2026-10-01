@@ -192,7 +192,7 @@ export function TripForm({
       aria-busy={loading}
     >
       <div className="form-intro">
-        <span className="eyebrow">Plan a run</span>
+        <span className="form-label">Plan a run</span>
         <Typography variant="h2">Three stops. One compliant timeline.</Typography>
         <Typography color="text.secondary">
           Enter US locations in route order and tell us how much of the 70-hour cycle is already used.

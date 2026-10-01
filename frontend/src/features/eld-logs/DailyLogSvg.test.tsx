@@ -37,7 +37,7 @@ describe('DailyLogSvg', () => {
     const { container } = render(<DailyLogSvg log={log} />)
     expect(screen.getByText('Alex Driver')).toBeInTheDocument()
     expect(screen.getByText('HaulHour Freight')).toBeInTheDocument()
-    expect(screen.getByText(/Drive — Chicago, IL/)).toBeInTheDocument()
+    expect(screen.getByText(/Drive - Chicago, IL/)).toBeInTheDocument()
     const graph = screen.getByRole('img', { name: /ELD-style duty graph/ })
     expect(graph).toBeInTheDocument()
     expect(container.querySelectorAll('svg line').length).toBeGreaterThan(100)
