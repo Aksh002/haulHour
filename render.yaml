@@ -2,6 +2,7 @@ services:
   - type: web
     name: haulhour-api
     runtime: python
+    plan: free
     buildCommand: pip install -r backend/requirements.txt && python backend/manage.py migrate --noinput && python backend/manage.py collectstatic --noinput
     startCommand: gunicorn --chdir backend config.wsgi:application
     healthCheckPath: /api/health/
