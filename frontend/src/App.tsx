@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CloudShader } from '@/components/ui/cloud-shader'
 import { EncryptedText } from '@/components/ui/encrypted-text'
 import GlassSurface from '@/components/GlassSurface'
+import { HeroRouteSignal } from '@/components/HeroRouteSignal'
 import { DailyLogSvg } from './features/eld-logs/DailyLogSvg'
 import { RouteMap } from './features/route-map/RouteMap'
 import { TripForm } from './features/trip-form/TripForm'
@@ -534,19 +535,7 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
               ariaHidden
             />
           )}
-          <div className="route-signal" aria-hidden="true">
-            <span className="route-line" />
-            <motion.span
-              className="truck-signal"
-              animate={{ x: [0, 92, 190] }}
-              transition={{ duration: 6, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
-            >
-              <Truck />
-            </motion.span>
-            <i className="route-node node-one" />
-            <i className="route-node node-two" />
-            <i className="route-node node-three" />
-          </div>
+          <HeroRouteSignal />
           <div className="hero-rule">
             {[
               ['8', 'hour break'],

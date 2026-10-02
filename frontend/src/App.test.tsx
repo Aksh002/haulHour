@@ -11,11 +11,12 @@ describe('application shell', () => {
   })
 
   it('shows the required planning inputs and disclaimer', () => {
-    render(<App />)
+    const { container } = render(<App />)
     expect(screen.getByRole('combobox', { name: /^current location$/i })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /^pickup$/i })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /^drop-off$/i })).toBeInTheDocument()
     expect(screen.getByText(/not a certified ELD/i)).toBeInTheDocument()
+    expect(container.querySelectorAll('.route-node')).toHaveLength(4)
   })
 
   it('has no automatically detectable critical accessibility violations', async () => {

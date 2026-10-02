@@ -538,52 +538,58 @@ select {
   height: 150px;
 }
 
-.route-line {
+.route-track {
   position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 54%;
-  height: 4px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #536970, #d85d32 70%, #ef8e69);
-  transform: rotate(-7deg);
-  transform-origin: center;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.route-line-base,
+.route-line-progress {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.route-line-base {
+  stroke: color-mix(in srgb, var(--hero-ink) 24%, transparent);
+  stroke-width: 3px;
+}
+
+.route-line-progress {
+  stroke: var(--signal);
+  stroke-width: 4px;
 }
 
 .truck-signal {
   position: absolute;
-  left: 10%;
-  top: 31%;
+  z-index: 2;
+  left: 0;
+  top: 0;
   display: grid;
   place-items: center;
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   color: #fffaf7;
   background: var(--signal);
   box-shadow: 0 10px 28px rgba(8, 17, 21, 0.38);
+  will-change: transform, opacity;
 }
 
 .route-node {
   position: absolute;
-  top: 52%;
+  z-index: 1;
   width: 14px;
   height: 14px;
   border: 3px solid var(--hero-ink);
   border-radius: 50%;
   background: var(--hero-alt);
-}
-
-.node-one {
-  left: 8%;
-}
-.node-two {
-  left: 49%;
-  top: 47%;
-}
-.node-three {
-  right: 7%;
-  top: 40%;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hero-panel) 70%, transparent);
+  transform: translate(-50%, -50%);
 }
 
 .hero-rule {
@@ -1612,9 +1618,6 @@ footer p {
   .route-signal {
     height: 125px;
   }
-  .truck-signal {
-    top: 26%;
-  }
   .hero-rule > div {
     padding: 14px 4px;
   }
@@ -1673,10 +1676,6 @@ footer p {
   html {
     scroll-behavior: auto;
   }
-  .truck-signal {
-    transform: none !important;
-  }
-
   .page-starfield::before,
   .page-starfield::after {
     animation: none;
