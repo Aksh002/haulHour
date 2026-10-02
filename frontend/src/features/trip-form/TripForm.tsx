@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import GlassSurface from '@/components/GlassSurface'
 import { ApiError, autocompleteLocations, reverseGeocode } from '../../api/client'
 import type { Coordinate, TripPlanRequest } from '../../types/tripPlan'
 import { MapLocationPicker, type PinCoordinate } from './MapLocationPicker'
@@ -53,12 +54,14 @@ export function TripForm({
   apiError,
   apiFieldErrors = {},
   initialValues,
+  glass = false,
 }: {
   onSubmit: (data: TripPlanRequest) => void
   loading: boolean
   apiError: string | null
   apiFieldErrors?: Record<string, string[]>
   initialValues?: TripPlanRequest | null
+  glass?: boolean
 }) {
   const defaults = useMemo<TripPlanRequest>(
     () => ({
@@ -216,6 +219,30 @@ export function TripForm({
       className="trip-form"
       aria-busy={loading}
     >
+      {glass && (
+        <GlassSurface
+          className="glass-surface-layer"
+          width="100%"
+          height="100%"
+          borderRadius={16}
+          borderWidth={0.035}
+          brightness={90}
+          opacity={0.28}
+          blur={4}
+          displace={0.15}
+          backgroundOpacity={0.28}
+          saturation={1.16}
+          distortionScale={-28}
+          greenOffset={2}
+          blueOffset={5}
+          mixBlendMode="soft-light"
+          theme="light"
+          tint="#cbe4de"
+          surfaceShadow="inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.26)"
+          performanceMode
+          ariaHidden
+        />
+      )}
       <div className="form-intro">
         <span className="form-label">Plan a run</span>
         <h2>Three stops. One compliant timeline.</h2>

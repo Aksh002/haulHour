@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { CloudShader } from '@/components/ui/cloud-shader'
 import { EncryptedText } from '@/components/ui/encrypted-text'
+import GlassSurface from '@/components/GlassSurface'
 import { DailyLogSvg } from './features/eld-logs/DailyLogSvg'
 import { RouteMap } from './features/route-map/RouteMap'
 import { TripForm } from './features/trip-form/TripForm'
@@ -92,14 +94,7 @@ function Results({
       >
         <div>
           <span className="plan-meta">
-            <EncryptedText
-              text="Plan ready"
-              charset="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-              revealDelayMs={42}
-              flipDelayMs={48}
-              encryptedClassName="plan-meta-encrypted"
-            />{' '}
-            <i /> version {plan.plan_version} <i /> {plan.demo_mode ? 'demo route' : 'live route'}
+            Plan ready <i /> version {plan.plan_version} <i /> {plan.demo_mode ? 'demo route' : 'live route'}
           </span>
           <h2>
             {plan.locations[0].label} <span>via</span> {plan.locations[1].label} <span>to</span>{' '}
@@ -424,6 +419,21 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
   })
   return (
     <div className="app-shell antialiased" data-theme={mode}>
+      <CloudShader
+        key={mode}
+        className="page-cloud-shader"
+        speed={mode === 'light' ? 0.48 : 0.28}
+        count={mode === 'light' ? 5 : 4}
+        cloudColor={mode === 'light' ? '#f8fbfa' : '#35434b'}
+        skyTopColor={mode === 'light' ? '#83a9a2' : '#05080d'}
+        skyBottomColor={mode === 'light' ? '#d7e7e3' : '#17262e'}
+        glowColor={mode === 'light' ? '#fff0d4' : '#8eafc3'}
+        glowStrength={mode === 'light' ? 0.26 : 0.09}
+        maxFps={mode === 'light' ? 30 : 24}
+        maxPixelRatio={1}
+      />
+      {mode === 'dark' && <div className="page-starfield" aria-hidden="true" />}
+      <div className="page-cloud-scrim" aria-hidden="true" />
       <header className="site-header">
         <div className="header-inner">
           <a className="brand" href="/" aria-label="HaulHour home">
@@ -475,7 +485,14 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
             Make every mile <em>account for time.</em>
           </motion.h1>
           <motion.p variants={{ hidden: enter, show: visible }}>
-            Plan the route, surface HOS boundaries, and inspect projected logs before the wheels turn.
+            <EncryptedText
+              text="Plan the route, surface HOS boundaries, and inspect projected logs before the wheels turn."
+              className="hero-secondary-text"
+              charset="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+              revealDelayMs={17}
+              flipDelayMs={38}
+              encryptedClassName="hero-secondary-encrypted"
+            />
           </motion.p>
           <motion.div variants={{ hidden: enter, show: visible }}>
             <Button asChild size="lg">
@@ -493,6 +510,30 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.7, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
         >
+          {mode === 'light' && (
+            <GlassSurface
+              className="glass-surface-layer"
+              width="100%"
+              height="100%"
+              borderRadius={16}
+              borderWidth={0.045}
+              brightness={88}
+              opacity={0.32}
+              blur={4}
+              displace={0.2}
+              backgroundOpacity={0.3}
+              saturation={1.18}
+              distortionScale={-36}
+              greenOffset={3}
+              blueOffset={6}
+              mixBlendMode="soft-light"
+              theme="light"
+              tint="#c7e1db"
+              surfaceShadow="inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 0 0 1px rgba(255, 255, 255, 0.3)"
+              performanceMode
+              ariaHidden
+            />
+          )}
           <div className="route-signal" aria-hidden="true">
             <span className="route-line" />
             <motion.span
@@ -538,6 +579,7 @@ function Application({ mode, onToggleMode }: { mode: ThemeMode; onToggleMode: ()
                   mutation.mutate(input)
                 }}
                 loading={mutation.isPending}
+                glass={mode === 'light'}
                 initialValues={lastRequest}
                 apiFieldErrors={mutation.error instanceof ApiError ? mutation.error.fieldErrors : {}}
                 apiError={
@@ -612,7 +654,7 @@ export default function App() {
   const [mode, setMode] = useState<ThemeMode>(() => {
     const saved = window.localStorage.getItem('haulhour-theme')
     if (saved === 'light' || saved === 'dark') return saved
-    return 'dark'
+    return 'light'
   })
   useEffect(() => {
     document.documentElement.dataset.theme = mode

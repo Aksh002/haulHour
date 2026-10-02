@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { motion, useInView, useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { cn } from '@/lib/utils'
 
 type EncryptedTextProps = {
@@ -52,7 +52,7 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   revealedClassName,
 }) => {
   const ref = useRef<HTMLSpanElement>(null)
-  const isInView = useInView(ref, { once: true })
+  const [isInView, setIsInView] = useState(false)
   const reduceMotion = useReducedMotion()
 
   const [revealCount, setRevealCount] = useState<number>(0)
@@ -62,6 +62,29 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   const startTimeRef = useRef<number>(0)
   const lastFlipTimeRef = useRef<number>(0)
   const scrambleCharsRef = useRef<string[]>(text ? generateGibberishPreservingSpaces(text, charset).split('') : [])
+
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsInView(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 },
+    )
+
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!isInView || reduceMotion) return
@@ -128,7 +151,8 @@ export const EncryptedText: React.FC<EncryptedTextProps> = ({
   }
 
   return (
-    <motion.span ref={ref} className={cn(className)} aria-label={text} role="text">
+    <motion.span ref={ref} className={cn(className)} data-slot="encrypted-text">
+      <span className="sr-only">{text}</span>
       {text.split('').map((char, index) => {
         const isRevealed = index < revealCount
         const displayChar = isRevealed
