@@ -643,7 +643,7 @@ export default function App() {
   const [mode, setMode] = useState<ThemeMode>(() => {
     const saved = window.localStorage.getItem('haulhour-theme')
     if (saved === 'light' || saved === 'dark') return saved
-    return 'light'
+    return 'dark'
   })
   useEffect(() => {
     document.documentElement.dataset.theme = mode
